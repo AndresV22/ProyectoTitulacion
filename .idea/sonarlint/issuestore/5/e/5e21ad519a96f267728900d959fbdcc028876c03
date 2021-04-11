@@ -1,0 +1,17 @@
+
+ipython:S1192"QDefine a constant instead of duplicating this literal "cybernetics core" 5 times.(¤—ÇÆ
+jpython:S1192"RDefine a constant instead of duplicating this literal "robotics facility" 3 times.(‹©½ñ
+npython:S1192	"QDefine a constant instead of duplicating this literal "twilight council" 4 times.(‹¹Éÿÿÿÿÿ
+wpython:S117"`Rename this local variable "ciberneticsCore" to match the regular expression ^[_a-z][a-z0-9_]*$.(ú£üÃ
+rpython:S117
+"[Rename this local variable "darkShrine" to match the regular expression ^[_a-z][a-z0-9_]*$.(ñàé
+xpython:S117"\Rename this local variable "fleetBeacon" to match the regular expression ^[_a-z][a-z0-9_]*$.(½®®ªıÿÿÿÿ
+ypython:S117"]Rename this local variable "photonCannon" to match the regular expression ^[_a-z][a-z0-9_]*$.(ŒÚğ–ÿÿÿÿÿ
+xpython:S117"\Rename this local variable "roboticsBay" to match the regular expression ^[_a-z][a-z0-9_]*$.(•±ë¡úÿÿÿÿ
+wpython:S117"aRename this local variable "roboticsFacility" to match the regular expression ^[_a-z][a-z0-9_]*$.(²Ö¡C
+upython:S117"^Rename this local variable "shieldBattery" to match the regular expression ^[_a-z][a-z0-9_]*$.(‘ã„
+|python:S117"`Rename this local variable "templarArchives" to match the regular expression ^[_a-z][a-z0-9_]*$.(¦ïØıÿÿÿÿ
+wpython:S117"`Rename this local variable "twilightCouncil" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ğ«åË
+cpython:S1006"LRename method "showTree" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ë”‡Ÿ
+fpython:S100:"ORename method "addBuilding" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ìğıº
+mpython:S100="VRename method "findBuildingByName" to match the regular expression ^[a-z_][a-z0-9_]*$.(á¨’¿
