@@ -3,7 +3,7 @@ class Unit:
     name = ""
     minerals = 0
     gas = 0
-    gameSpeed: int = 0
+    gameSpeed = 0
     supply = 0
     unlockedOn = 0  # Se utiliza la id del edificio
     builtOn = 0
