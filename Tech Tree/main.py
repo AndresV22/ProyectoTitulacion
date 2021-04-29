@@ -47,16 +47,40 @@ def initTechTree():
 def showVertexInfo(techTree):
     i = 0
     while i < 61:
-        print("Name: {}".format(techTree.vs[i]["name"]))
-        print("    code: {}".format(techTree.vs[i]["code"]))
-        print("    minerals: {}".format(techTree.vs[i]["minerals"]))
-        print("    gas: {}".format(techTree.vs[i]["gas"]))
-        print("    gameSpeed: {}".format(techTree.vs[i]["gameSpeed"]))
-        print("    initialEnergy: {}".format(techTree.vs[i]["initialEnergy"]))
-        print("    maxEnergy: {}".format(techTree.vs[i]["maxEnergy"]))
-        print("    supply: {}".format(techTree.vs[i]["supply"]))
-        print("    type: {}".format(techTree.vs[i]["type"]))
+        print("--- {} ---".format(techTree.vs[i]["name"]))
+        print("code: {}".format(techTree.vs[i]["code"]))
+        print("minerals: {}".format(techTree.vs[i]["minerals"]))
+        print("gas: {}".format(techTree.vs[i]["gas"]))
+        print("gameSpeed: {}".format(techTree.vs[i]["gameSpeed"]))
+        print("initialEnergy: {}".format(techTree.vs[i]["initialEnergy"]))
+        print("maxEnergy: {}".format(techTree.vs[i]["maxEnergy"]))
+        print("supply: {}".format(techTree.vs[i]["supply"]))
+        print("type: {}".format(techTree.vs[i]["type"]))
+        print("")
         i += 1
+
+
+def getVertexByName(techTree, vertexName):
+    i = 0
+    found = 0
+    while i < 61:
+        if(techTree.vs[i]["name"] == vertexName):
+            print("")
+            print("--- {} ---".format(techTree.vs[i]["name"]))
+            print("code: {}".format(techTree.vs[i]["code"]))
+            print("minerals: {}".format(techTree.vs[i]["minerals"]))
+            print("gas: {}".format(techTree.vs[i]["gas"]))
+            print("gameSpeed: {}".format(techTree.vs[i]["gameSpeed"]))
+            print("initialEnergy: {}".format(techTree.vs[i]["initialEnergy"]))
+            print("maxEnergy: {}".format(techTree.vs[i]["maxEnergy"]))
+            print("supply: {}".format(techTree.vs[i]["supply"]))
+            print("type: {}".format(techTree.vs[i]["type"]))
+            print("")
+            i = 62
+            found = 1
+        i += 1
+    if(found == 0):
+        print("No existe un vértice con ese nombre.")
 
 
 def showGraph(graph):
@@ -82,42 +106,63 @@ def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def main():
+def showMenu(techTree):
     exit = 0
-    techTree = initTechTree()
     while(exit == 0):
         cls()
         print("--------INICIO---------")
+        print("")
         print("-- Menú --")
         print("1: Mostrar árbol de tecnologías Protoss")
-        print("2: Ver detalles de cada vértice")
-        print("3: Encontrar el camino mas corto")
-        print("4: Salir")
+        print("2: Ver detalles todos los vértices")
+        print("3: Buscar vértice por nombre")
+        print("4: Encontrar el camino más corto")
+        print("5: Salir")
+        print("")
         choice = input("Ingrese su elección: ")
         if(choice == "1"):
+            print("")
             print("-- Mostrar árbol de tecnologías Protoss --")
             print("Cargando...")
             print("(Para volver al menú cierre la ventana de la imágen.)")
             showGraph(techTree)
         elif(choice == "2"):
+            print("")
             print("-- Ver detalles de cada vértice -- ")
             print(techTree)
             showVertexInfo(techTree)
             input("Presione enter para volver al menú...")
         elif(choice == "3"):
+            print("")
+            print("-- Buscar vértice por nombre --")
+            vertexName = input(
+                "Por favor ingrese el nombre del vértice que desea buscar: ")
+            getVertexByName(techTree, vertexName)
+            input("Presione enter para volver al menú...")
+        elif(choice == "4"):
+            print("")
             print("-- Encontrar el camino más corto --")
             vertexFrom = input(
                 "Ingrese el nombre del vértice de inicio: ")
             vertexTo = input("Ingrese el nombre del vértice destino: ")
             getPath(techTree, vertexFrom, vertexTo)
             input("Presione enter para volver al menú...")
-        elif(choice == "4"):
+        elif(choice == "5"):
+            print("")
             print("Cerrando programa...")
             exit = 1
         else:
             cls()
+            print("--- ERROR ---")
+            print("")
             input("No existe esa opción. Presione enter para volver al menú...")
+    print("")
     print("---------FIN----------")
+
+
+def main():
+    techTree = initTechTree()
+    showMenu(techTree)
     sys.exit()
 
 
