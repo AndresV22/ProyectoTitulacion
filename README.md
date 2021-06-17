@@ -11,7 +11,7 @@ Búsqueda local iterada para optimizar tiempo en órdenes de construcción en St
 
 ## Descripción
 
-Programa que permite encontrar órdenes de construcción en el juego Starcraft 2 para la raza Protoss, mediante la implementación de grafos y el algoritmo de búsqueda local iterada.
+Programa que permite encontrar órdenes de construcción en el juego Starcraft 2 para la raza Protoss, mediante la implementación de grafos y la metaheurística de búsqueda local iterada.
 
 ## Requisitos
 
@@ -35,7 +35,7 @@ pip install python-igraph
 ## Ejecución
 
 ```sh
-cd iteratedLocalSearchStarcraft2_tesis/Tech\ Tree/
+cd ProyectoTitulacion/Tech\ Tree/
 ```
 ```sh
 python3 main.py
