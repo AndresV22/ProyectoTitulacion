@@ -1,10 +1,11 @@
 import igraph as ig
 import os
 import sys
+import random
 
 # Para usar igraph es necesario instalarlo con "pip install python-igraph"
 
-
+#Funcion que crea el árbol de tecnologías.
 def initTechTree():
     techTree = ig.Graph(directed=True)
     techTree.add_vertices(61)  # 15 buildings in Protoss Tech Tree
@@ -43,7 +44,7 @@ def initTechTree():
                            "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech", "Tech"]
     return techTree
 
-
+#Muestra la información de los vértices
 def showVertexInfo(techTree):
     i = 0
     while i < 61:
@@ -59,7 +60,7 @@ def showVertexInfo(techTree):
         print("")
         i += 1
 
-
+#Obtiene la información de un vértice obtenido por nombre
 def getVertexByName(techTree, vertexName):
     i = 0
     found = 0
@@ -82,7 +83,7 @@ def getVertexByName(techTree, vertexName):
     if(found == 0):
         print("No existe un vértice con ese nombre.")
 
-
+#Muestra el árbol de tecnologías en una imágen
 def showGraph(graph):
     layout = graph.layout_reingold_tilford(root=0)
     color_dict = {"Building": "red", "Unit": "green", "Tech": "blue"}
@@ -94,13 +95,102 @@ def showGraph(graph):
     visual_style["bbox"] = (2000, 2000)
     ig.plot(graph, **visual_style)
 
+#Imprime el camino mas corto desde un vértice de inicio a otro vértice destino
+def printPath(graph, vertexFrom, vertexTo):
+    # getPath(graph: grafo, vertexFrom: Vertice inicio, vertexTo: Vertice destino)
+    # Retorna: Arreglo con arreglos de caminos. Ej: [[0,1,2,3], [0,2,3]]
+    path = graph.get_all_shortest_paths(
+        vertexFrom, to=vertexTo, weights=None, mode='out')
+    print(path)
 
+#Retorna el camino mas corto desde un vértice de inicio a otro vértice destino
 def getPath(graph, vertexFrom, vertexTo):
     # getPath(graph: grafo, vertexFrom: Vertice inicio, vertexTo: Vertice destino)
     # Retorna: Arreglo con arreglos de caminos. Ej: [[0,1,2,3], [0,2,3]]
-    print(graph.get_all_shortest_paths(
-        vertexFrom, to=vertexTo, weights=None, mode='out'))
+    path = graph.get_all_shortest_paths(
+        vertexFrom, to=vertexTo, weights=None, mode='out')
+    return(path)
 
+#Obtiene un orden de construcción aleatorio acotado por un tiempo gameTime
+def getRandomBuildOrder(techTree, maxTime):
+    #resources = [Minerals, Vespene, Supply] | where Supply = [Units, Total]
+    resources = [50, 0, [13, 15]]
+    #Cantidad de unidades o de edificios en un determinado momento
+    vertexQty = []
+    for name in techTree.vs["name"]:
+        vertexQty.append([name, 0])
+    #Cola de construcción
+    constructionQueue = []
+    #Orden de construcción a retornar
+    buildOrder = []
+    #Hay 13 probes al inicio y 1 nexus
+    vertexQty[15][1] = 13
+    vertexQty[0][1] = 1
+    time = 0
+    supplyLeft = resources[2][1] - resources[2][0]
+    while(time < maxTime):
+        #Se verifica si hay alguna unidad, edificio o tecnología que requiera terminar de construirse
+        if(len(constructionQueue) > 0):
+            vertex = 0
+            while(vertex < len(constructionQueue)):
+                #Si ya pasó el tiempo de construcción se agregará a vertexQty
+                if(constructionQueue[vertex][1] == 0):
+                    #Se verifica que queden suministros para agregar la unidad de ser necesario
+                    if(supplyLeft >= techTree.vs[constructionQueue[vertex][0]]["supply"]):
+                        #Si se construye un pylon se aumentan los suministros
+                        if(constructionQueue[vertex][0] == 2):
+                            resources[2][1] += 5
+                            supplyLeft = resources[2][1] - resources[2][0]
+                        #Si se construye un nexus se aumentan los suministros
+                        if(constructionQueue[vertex][0] == 0):
+                            resources[2][1] += 9
+                            supplyLeft = resources[2][1] - resources[2][0]
+                        #Se agrega la unidad a vertexQty
+                        vertexQty[constructionQueue[vertex][0]][1] += 1
+                        #Se suman los suministros
+                        resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[vertex][0]]["supply"]
+                        #Se restan los suministros de supplyLeft
+                        supplyLeft = supplyLeft - techTree.vs[constructionQueue[vertex][0]]["supply"]
+                        #Se elimina de la lista
+                        constructionQueue.pop(vertex)
+                #De lo contrario se le restara 1 gameSpeed y se mantendrá en la cola de construcción
+                else:
+                    constructionQueue[vertex][1] -= 1
+                #Aumenta el contador de la cola
+                vertex+=1
+        #Minerales: Cada segundo se obtiene 0.916 por cada trabajador que no esté recolectando vespeno
+        resources[0] += 0.916*(vertexQty[15][1] - 3*vertexQty[1][1]) # Esto es: Minerales = 0.916*(probes - 3*assimilators)
+        #Vespeno: Se considera el caso en que si hay un asimilador inmediatamente 3 trabajadores irán a recolectar vespeno
+        resources[1] += 2.71*vertexQty[1][1] # Esto es: Vespeno = 2.71*(assimilators)
+        #Se obtiene un numero random para definir el vertice que se construirá
+        vertexToBuild = random.randint(0,60)
+        #Se obtiene el camino mas corto para llegar a ese vertice
+        pathToVertex = getPath(techTree, "Nexus", techTree.vs[vertexToBuild]["name"])
+        checkPrerequisites = True
+        #Se verifica si los prerrequisitos están construidos
+        if(len(pathToVertex) > 0):
+            for vertexId in pathToVertex[0]:
+                if(vertexQty[vertexId][1] == 0 and vertexId != vertexToBuild):
+                    checkPrerequisites = False
+        #if(techTree.vs[vertexToBuild]["name"] == "Probe"):
+        #    print("Probe ", "minerales: ", resources[0], "gas: ", resources[1], "sum ", resources[2][0],"/",resources[2][1], " Estado: ", checkPrerequisites, "SupplyLeft: ", supplyLeft)
+        #Se verifica que tenga los recursos suficientes para construir el vertice y que cumpla con los prerrequisitos
+        if(checkPrerequisites and resources[0] >= techTree.vs[vertexToBuild]["minerals"] and resources[1] >= techTree.vs[vertexToBuild]["gas"] and supplyLeft >= techTree.vs[vertexToBuild]["supply"]):
+            #Se agrega a la cola de construcción
+            constructionQueue.append([vertexToBuild, techTree.vs[vertexToBuild]["gameSpeed"]])
+            resources[0] = resources[0] - techTree.vs[vertexToBuild]["minerals"]
+            resources[1] = resources[1] - techTree.vs[vertexToBuild]["gas"]
+            #Se agrega al build order en el tiempo en que se ejecuta la acción de empezar a construir el vertice
+            buildOrder.append([time, techTree.vs[vertexToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1])])
+        time += 1
+    return buildOrder
+
+def printBuildOrder(buildOrder):
+    print("")
+    print("Tiempo | Unidad | Suministros | Minerales | Vespeno")
+    for element in buildOrder:
+        print(element[0], " | ", element[1], " | ", element[2], "/", element[3], " | ", element[4], " | ", element[5])
+    print("")
 
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -117,7 +207,8 @@ def showMenu(techTree):
         print("2: Ver detalles todos los vértices")
         print("3: Buscar vértice por nombre")
         print("4: Encontrar el camino más corto")
-        print("5: Salir")
+        print("5: Obtener un orden de construcción aleatorio")
+        print("6: Salir")
         print("")
         choice = input("Ingrese su elección: ")
         if(choice == "1"):
@@ -145,9 +236,16 @@ def showMenu(techTree):
             vertexFrom = input(
                 "Ingrese el nombre del vértice de inicio: ")
             vertexTo = input("Ingrese el nombre del vértice destino: ")
-            getPath(techTree, vertexFrom, vertexTo)
+            printPath(techTree, vertexFrom, vertexTo)
             input("Presione enter para volver al menú...")
         elif(choice == "5"):
+            print("")
+            print("-- Obtener orden de construcción aleatorio --")
+            maxTime = int(input("ingrese el tiempo maxímo que tendrá el orden de construcción en segundos: "))
+            buildOrder = getRandomBuildOrder(techTree, maxTime)
+            printBuildOrder(buildOrder)
+            input("Presione enter para volver al menú...")
+        elif(choice == "6"):
             print("")
             print("Cerrando programa...")
             exit = 1
