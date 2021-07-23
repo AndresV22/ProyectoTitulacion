@@ -112,7 +112,8 @@ def getPath(graph, vertexFrom, vertexTo):
     return(path)
 
 #Obtiene un orden de construcción aleatorio acotado por un tiempo gameTime
-def getRandomBuildOrder(techTree, maxTime):
+def getRandomBuildOrder(techTree, entityId, entityQty):
+    print("EntityId: ", entityId, "EntityQty: ", entityQty)
     #resources = [Minerals, Vespene, Supply] | where Supply = [Units, Total]
     resources = [50, 0, [13, 15]]
     #Cantidad de unidades o de edificios en un determinado momento
@@ -128,8 +129,13 @@ def getRandomBuildOrder(techTree, maxTime):
     vertexQty[0][1] = 1
     time = 0
     supplyLeft = resources[2][1] - resources[2][0]
-    while(time < maxTime):
+    nextTic = True
+    while(nextTic):
         #Se verifica si hay alguna unidad, edificio o tecnología que requiera terminar de construirse
+
+        #Traza
+        #print(constructionQueue)
+
         if(len(constructionQueue) > 0):
             vertex = 0
             while(vertex < len(constructionQueue)):
@@ -143,13 +149,13 @@ def getRandomBuildOrder(techTree, maxTime):
                             supplyLeft = resources[2][1] - resources[2][0]
                         #Si se construye un nexus se aumentan los suministros
                         if(constructionQueue[vertex][0] == 0):
-                            resources[2][1] += 9
+                            resources[2][1] += 15
                             supplyLeft = resources[2][1] - resources[2][0]
                         #Se agrega la unidad a vertexQty
                         vertexQty[constructionQueue[vertex][0]][1] += 1
-                        #Se suman los suministros
+                        #Se suman los suministros de unidades
                         resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[vertex][0]]["supply"]
-                        #Se restan los suministros de supplyLeft
+                        #Se restan los suministros necesarios para construir la entidad en supplyLeft
                         supplyLeft = supplyLeft - techTree.vs[constructionQueue[vertex][0]]["supply"]
                         #Se elimina de la lista
                         constructionQueue.pop(vertex)
@@ -159,9 +165,16 @@ def getRandomBuildOrder(techTree, maxTime):
                 #Aumenta el contador de la cola
                 vertex+=1
         #Minerales: Cada segundo se obtiene 0.916 por cada trabajador que no esté recolectando vespeno
-        resources[0] += 0.916*(vertexQty[15][1] - 3*vertexQty[1][1]) # Esto es: Minerales = 0.916*(probes - 3*assimilators)
-        #Vespeno: Se considera el caso en que si hay un asimilador inmediatamente 3 trabajadores irán a recolectar vespeno
-        resources[1] += 2.71*vertexQty[1][1] # Esto es: Vespeno = 2.71*(assimilators)
+        if(vertexQty[1][1] == 0):
+            resources[0] += 0.916*(vertexQty[15][1]) # Esto es: Minerales = 0.916*(probes)
+        else:
+            #Al menos 16  trabajadores en un nexus minando minerales y el resto Vespeno
+            if(vertexQty[15][1] > 16):
+                availableProbes = vertexQty[15][1] - 16
+                resources[1] += 1.01*availableProbes
+                resources[0] += 0.916*16
+            else:
+                resources[0] += 0.916*(vertexQty[15][1]) # Esto es: Minerales = 0.916*(probes)
         #Se obtiene un numero random para definir el vertice que se construirá
         vertexToBuild = random.randint(0,60)
         #Se obtiene el camino mas corto para llegar a ese vertice
@@ -172,8 +185,11 @@ def getRandomBuildOrder(techTree, maxTime):
             for vertexId in pathToVertex[0]:
                 if(vertexQty[vertexId][1] == 0 and vertexId != vertexToBuild):
                     checkPrerequisites = False
+
+        #Traza
         #if(techTree.vs[vertexToBuild]["name"] == "Probe"):
         #    print("Probe ", "minerales: ", resources[0], "gas: ", resources[1], "sum ", resources[2][0],"/",resources[2][1], " Estado: ", checkPrerequisites, "SupplyLeft: ", supplyLeft)
+        
         #Se verifica que tenga los recursos suficientes para construir el vertice y que cumpla con los prerrequisitos
         if(checkPrerequisites and resources[0] >= techTree.vs[vertexToBuild]["minerals"] and resources[1] >= techTree.vs[vertexToBuild]["gas"] and supplyLeft >= techTree.vs[vertexToBuild]["supply"]):
             #Se agrega a la cola de construcción
@@ -182,7 +198,11 @@ def getRandomBuildOrder(techTree, maxTime):
             resources[1] = resources[1] - techTree.vs[vertexToBuild]["gas"]
             #Se agrega al build order en el tiempo en que se ejecuta la acción de empezar a construir el vertice
             buildOrder.append([time, techTree.vs[vertexToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1])])
-        time += 1
+        #Si se logra la cantidad ingresada por el usuario se detiene la construcción
+        if(vertexQty[entityId][1] == entityQty):
+            nextTic = False
+        else: 
+            time += 1
     return buildOrder
 
 def printBuildOrder(buildOrder):
@@ -241,10 +261,23 @@ def showMenu(techTree):
         elif(choice == "5"):
             print("")
             print("-- Obtener orden de construcción aleatorio --")
-            maxTime = int(input("ingrese el tiempo maxímo que tendrá el orden de construcción en segundos: "))
-            buildOrder = getRandomBuildOrder(techTree, maxTime)
-            printBuildOrder(buildOrder)
-            input("Presione enter para volver al menú...")
+            entityName = input("Ingrese el nombre de la entidad que desea obtener en el orden de construcción: ")
+            success = False
+            for name in techTree.vs["name"]:
+                if entityName == name:
+                    success = True
+            if success == False:
+                print("--- ERROR ---")
+                print("")
+                input("No existe esa entidad. Presione enter para volver al menú...")
+            else:
+                for id in techTree.vs["code"]:
+                    if techTree.vs[id]["name"] == entityName:
+                        entityId = id
+                entityQty = int(input("Ingrese la cantidad que desea obtener: "))
+                buildOrder = getRandomBuildOrder(techTree, entityId, entityQty)
+                printBuildOrder(buildOrder)
+                input("Presione enter para volver al menú...")
         elif(choice == "6"):
             print("")
             print("Cerrando programa...")
