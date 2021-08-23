@@ -210,8 +210,14 @@ def getRandomBuildOrder(techTree, entityId, entityQty, maxTime):
             for vertexId in pathToNode[0]:
                 if(nodeQty[vertexId][1] == 0 and vertexId != nodeToBuild):
                     checkPrerequisites = False
-        if(techTree.vs[nodeToBuild]["type"] == "Tech" and nodeQty[nodeToBuild][1] > 0):
-            checkPrerequisites = False
+        #Se verifica si es una tecnología ya creada o está siendo creada en la cola
+        elementId = techTree.vs[nodeToBuild]["code"]
+        if(elementId >= 34):
+            if(nodeQty[elementId][1] > 0):
+                checkPrerequisites = False
+            for queueElement in constructionQueue:
+                if queueElement[0] == nodeToBuild:
+                    checkPrerequisites = False
         #Traza
         #if(techTree.vs[nodeToBuild]["name"] == "Probe"):
         #    print("Probe ", "minerales: ", resources[0], "gas: ", resources[1], "sum ", resources[2][0],"/",resources[2][1], " Estado: ", checkPrerequisites, "SupplyLeft: ", supplyLeft)
@@ -284,7 +290,7 @@ def perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime):
     
     #Cola de construcción
     constructionQueue = list(brotherBuildOrder[-1][6])
-    time = buildOrder[-1][0]+1
+    time = brotherBuildOrder[-1][0]+1
     supplyLeft = brotherBuildOrder[-1][3] - brotherBuildOrder[-1][2]
     nextTic = True
     while(nextTic):
@@ -344,8 +350,14 @@ def perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime):
             for vertexId in pathToNode[0]:
                 if(brotherNodeQty[vertexId][1] == 0 and vertexId != nodeToBuild):
                     checkPrerequisites = False
-        if(techTree.vs[nodeToBuild]["type"] == "Tech" and brotherNodeQty[nodeToBuild][1] > 0):
-            checkPrerequisites = False
+        #Se verifica si es una tecnología ya creada o está siendo creada en la cola
+        elementId = techTree.vs[nodeToBuild]["code"]
+        if(elementId >= 34):
+            if(brotherNodeQty[elementId][1] > 0):
+                checkPrerequisites = False
+            for queueElement in constructionQueue:
+                if queueElement[0] == nodeToBuild:
+                    checkPrerequisites = False
         #Traza
         #if(techTree.vs[nodeToBuild]["name"] == "Probe"):
         #    print("Probe ", "minerales: ", resources[0], "gas: ", resources[1], "sum ", resources[2][0],"/",resources[2][1], " Estado: ", checkPrerequisites, "SupplyLeft: ", supplyLeft)
