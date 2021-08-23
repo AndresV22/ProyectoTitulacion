@@ -2,6 +2,7 @@ import igraph as ig
 import os
 import sys
 import random
+import copy
 
 # Para usar igraph es necesario instalarlo con "pip install python-igraph"
 
@@ -112,21 +113,21 @@ def getPath(graph, vertexFrom, vertexTo):
     return(path)
 
 #Obtiene un orden de construcción aleatorio acotado por un tiempo gameTime
-def getRandomBuildOrder(techTree, entityId, entityQty):
+def getRandomBuildOrder(techTree, entityId, entityQty, maxTime):
     print("EntityId: ", entityId, "EntityQty: ", entityQty)
     #resources = [Minerals, Vespene, Supply] | where Supply = [Units, Total]
     resources = [50, 0, [13, 15]]
     #Cantidad de unidades o de edificios en un determinado momento
-    vertexQty = []
+    nodeQty = []
     for name in techTree.vs["name"]:
-        vertexQty.append([name, 0])
+        nodeQty.append([name, 0])
+    #Hay 13 probes al inicio y 1 nexus
+    nodeQty[15][1] = 13
+    nodeQty[0][1] = 1
     #Cola de construcción
     constructionQueue = []
     #Orden de construcción a retornar
     buildOrder = []
-    #Hay 13 probes al inicio y 1 nexus
-    vertexQty[15][1] = 13
-    vertexQty[0][1] = 1
     time = 0
     supplyLeft = resources[2][1] - resources[2][0]
     nextTic = True
@@ -137,69 +138,96 @@ def getRandomBuildOrder(techTree, entityId, entityQty):
         #print(constructionQueue)
 
         if(len(constructionQueue) > 0):
-            vertex = 0
-            while(vertex < len(constructionQueue)):
-                #Si ya pasó el tiempo de construcción se agregará a vertexQty
-                if(constructionQueue[vertex][1] == 0):
+            node = 0
+            while(node < len(constructionQueue)):
+                #Si ya pasó el tiempo de construcción se agregará a nodeQty
+                if(constructionQueue[node][1] == 0):
                     #Se verifica que queden suministros para agregar la unidad de ser necesario
-                    if(supplyLeft >= techTree.vs[constructionQueue[vertex][0]]["supply"]):
-                        #Si se construye un pylon se aumentan los suministros
-                        if(constructionQueue[vertex][0] == 2):
-                            resources[2][1] += 5
-                            supplyLeft = resources[2][1] - resources[2][0]
-                        #Si se construye un nexus se aumentan los suministros
-                        if(constructionQueue[vertex][0] == 0):
-                            resources[2][1] += 15
-                            supplyLeft = resources[2][1] - resources[2][0]
-                        #Se agrega la unidad a vertexQty
-                        vertexQty[constructionQueue[vertex][0]][1] += 1
-                        #Se suman los suministros de unidades
-                        resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[vertex][0]]["supply"]
-                        #Se restan los suministros necesarios para construir la entidad en supplyLeft
-                        supplyLeft = supplyLeft - techTree.vs[constructionQueue[vertex][0]]["supply"]
-                        #Se elimina de la lista
-                        constructionQueue.pop(vertex)
+                    if(supplyLeft >= techTree.vs[constructionQueue[node][0]]["supply"]):
+                        if(techTree.vs[constructionQueue[node][0]]["type"] != "Tech"):
+                            #Si hay 200 de suministro entonces no se agregarán mas suministros
+                            #Si se construye un pylon se aumentan los suministros
+                            if(constructionQueue[node][0] == 2):
+                                resources[2][1] += 5
+                                supplyLeft = resources[2][1] - resources[2][0]
+                            #Si se construye un nexus se aumentan los suministros
+                            if(constructionQueue[node][0] == 0):
+                                resources[2][1] += 15
+                                supplyLeft = resources[2][1] - resources[2][0]
+                            #Se agrega la unidad a nodeQty
+                            nodeQty[constructionQueue[node][0]][1] += 1
+                            #Se suman los suministros de unidades
+                            resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[node][0]]["supply"]
+                            #Se restan los suministros necesarios para construir la entidad en supplyLeft
+                            supplyLeft = supplyLeft - techTree.vs[constructionQueue[node][0]]["supply"]
+                            #Se elimina de la lista
+                            constructionQueue.pop(node)
+                        else:
+                            if(nodeQty[constructionQueue[node][0]][1] > 0):
+                                constructionQueue.pop(node)
+                            else:
+                                #Se agrega la unidad a nodeQty
+                                nodeQty[constructionQueue[node][0]][1] += 1
                 #De lo contrario se le restara 1 gameSpeed y se mantendrá en la cola de construcción
                 else:
-                    constructionQueue[vertex][1] -= 1
+                    constructionQueue[node][1] -= 1
                 #Aumenta el contador de la cola
-                vertex+=1
-        #Minerales: Cada segundo se obtiene 0.916 por cada trabajador que no esté recolectando vespeno
-        if(vertexQty[1][1] == 0):
-            resources[0] += 0.916*(vertexQty[15][1]) # Esto es: Minerales = 0.916*(probes)
-        else:
-            #Al menos 16  trabajadores en un nexus minando minerales y el resto Vespeno
-            if(vertexQty[15][1] > 16):
-                availableProbes = vertexQty[15][1] - 16
-                resources[1] += 1.01*availableProbes
-                resources[0] += 0.916*16
-            else:
-                resources[0] += 0.916*(vertexQty[15][1]) # Esto es: Minerales = 0.916*(probes)
+                node+=1
+        #Recolección de recursos (fija al numero de probes por el momento, las lines comentadas de abajo era una posible idea)
+        probesTotal = nodeQty[15][1]
+        resources[0] += probesTotal*0.916
+        resources[1] += probesTotal
+        ##################################################
+        #Gestión de Minerales y Vespeno
+        #Se prioriza la extracción de minerales hasta saturar los nexus
+        #Los probes restantes se van a sacar vespeno
+        #Y los probes que no puedan sacar vespeno se sumarán a los que extraen minerales
+            # probesTotal = nodeQty[15][1]
+            # nexusTotal = nodeQty[0][1]
+            # assimilatorsTotal = nodeQty[1][1]
+            # maxProbesInMinerals = 16*nexusTotal
+            # maxProbesInVespene = 3*assimilatorsTotal
+            # if(probesTotal <= maxProbesInMinerals):
+            #     resources[0] += probesTotal*0.916
+            # else:
+            #     availableProbes = probesTotal - maxProbesInMinerals
+            #     resources[0] += maxProbesInMinerals*0.916
+            #     if(availableProbes <= maxProbesInVespene):
+            #         resources[1] += 3*availableProbes
+            #     else:
+            #         probesNotWorking = availableProbes - maxProbesInVespene
+            #         resources[1] += maxProbesInVespene
+            #         resources[0] += probesNotWorking*0.916
+        ##################################################
+            
         #Se obtiene un numero random para definir el vertice que se construirá
-        vertexToBuild = random.randint(0,60)
+        nodeToBuild = random.randint(0,60)
         #Se obtiene el camino mas corto para llegar a ese vertice
-        pathToVertex = getPath(techTree, "Nexus", techTree.vs[vertexToBuild]["name"])
+        pathToNode = getPath(techTree, "Nexus", techTree.vs[nodeToBuild]["name"])
         checkPrerequisites = True
         #Se verifica si los prerrequisitos están construidos
-        if(len(pathToVertex) > 0):
-            for vertexId in pathToVertex[0]:
-                if(vertexQty[vertexId][1] == 0 and vertexId != vertexToBuild):
+        if(len(pathToNode) > 0):
+            for vertexId in pathToNode[0]:
+                if(nodeQty[vertexId][1] == 0 and vertexId != nodeToBuild):
                     checkPrerequisites = False
-
+        if(techTree.vs[nodeToBuild]["type"] == "Tech" and nodeQty[nodeToBuild][1] > 0):
+            checkPrerequisites = False
         #Traza
-        #if(techTree.vs[vertexToBuild]["name"] == "Probe"):
+        #if(techTree.vs[nodeToBuild]["name"] == "Probe"):
         #    print("Probe ", "minerales: ", resources[0], "gas: ", resources[1], "sum ", resources[2][0],"/",resources[2][1], " Estado: ", checkPrerequisites, "SupplyLeft: ", supplyLeft)
         
         #Se verifica que tenga los recursos suficientes para construir el vertice y que cumpla con los prerrequisitos
-        if(checkPrerequisites and resources[0] >= techTree.vs[vertexToBuild]["minerals"] and resources[1] >= techTree.vs[vertexToBuild]["gas"] and supplyLeft >= techTree.vs[vertexToBuild]["supply"]):
+        if(checkPrerequisites and resources[0] >= techTree.vs[nodeToBuild]["minerals"] and resources[1] >= techTree.vs[nodeToBuild]["gas"] and supplyLeft >= techTree.vs[nodeToBuild]["supply"]):
             #Se agrega a la cola de construcción
-            constructionQueue.append([vertexToBuild, techTree.vs[vertexToBuild]["gameSpeed"]])
-            resources[0] = resources[0] - techTree.vs[vertexToBuild]["minerals"]
-            resources[1] = resources[1] - techTree.vs[vertexToBuild]["gas"]
+            constructionQueue.append([nodeToBuild, techTree.vs[nodeToBuild]["gameSpeed"]])
+            resources[0] = resources[0] - techTree.vs[nodeToBuild]["minerals"]
+            resources[1] = resources[1] - techTree.vs[nodeToBuild]["gas"]
+            nodeQtyToAdd = nodeQty.copy()
+            constructionQueueToAdd = constructionQueue.copy()
             #Se agrega al build order en el tiempo en que se ejecuta la acción de empezar a construir el vertice
-            buildOrder.append([time, techTree.vs[vertexToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1])])
+            buildOrder.append([time, techTree.vs[nodeToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1]), constructionQueueToAdd.copy(), nodeQtyToAdd.copy()])
         #Si se logra la cantidad ingresada por el usuario se detiene la construcción
-        if(vertexQty[entityId][1] == entityQty):
+        if((nodeQty[entityId][1] == entityQty) or time == maxTime):
             nextTic = False
         else: 
             time += 1
@@ -215,6 +243,169 @@ def printBuildOrder(buildOrder):
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime):
+    print("Tiempo final: ", buildOrder[-1][0])
+    timeSelected = random.randint(buildOrder[0][0],buildOrder[-1][0])
+    print("Numero random: ", timeSelected)
+    brotherBuildOrder = []
+    #Cantidad de unidades o de edificios en un determinado momento
+    #Se agrega cada elemento del build order original al nuevo build order, hasta llegar al tiempo seleccionado
+    for element in buildOrder:
+        if(element[0] <= timeSelected):
+            elementToAppend = element
+            brotherBuildOrder.append(elementToAppend)
+
+    #Malo, hay que contar cada elemento de la brotherBuildOrder y calcular el nuevo brotherNodeQty
+    #brotherNodeQty = list(brotherBuildOrder[-1][7])
+
+    #Se crea nuevo NodeQty desde cero
+    brotherNodeQty = []
+    for name in techTree.vs["name"]:
+        brotherNodeQty.append([name, 0])
+    brotherNodeQty[15][1] = 13
+    brotherNodeQty[0][1] = 1
+
+    #Se obtienen las unidades y edificios ya creadas y se agregan al nodeQty
+    for element in brotherBuildOrder:
+        for node in brotherNodeQty:
+            if(node[0] == element[1]):
+                node[1] += 1
+    
+    print("brotherNodeQty del BO hermano: ", brotherNodeQty[entityId][1], "Cantidad requerida: ", entityQty)
+    #resources = [Minerals, Vespene, Supply] | where Supply = [Units, Total]
+    resources = []
+    minerals = brotherBuildOrder[-1][4]
+    vespene = brotherBuildOrder[-1][5]
+    actualSupply = brotherBuildOrder[-1][2]
+    totalSupply = brotherBuildOrder[-1][3]
+    resources.append(minerals)
+    resources.append(vespene)
+    resources.append([actualSupply, totalSupply])
+    
+    #Cola de construcción
+    constructionQueue = list(brotherBuildOrder[-1][6])
+    time = buildOrder[-1][0]+1
+    supplyLeft = brotherBuildOrder[-1][3] - brotherBuildOrder[-1][2]
+    nextTic = True
+    while(nextTic):
+        #Se verifica si hay alguna unidad, edificio o tecnología que requiera terminar de construirse
+
+        #Traza
+        #print(constructionQueue)
+
+        if(len(constructionQueue) > 0):
+            node = 0
+            while(node < len(constructionQueue)):
+                #Si ya pasó el tiempo de construcción se agregará a brotherNodeQty
+                if(constructionQueue[node][1] == 0):
+                    #Se verifica que queden suministros para agregar la unidad de ser necesario
+                    if(supplyLeft >= techTree.vs[constructionQueue[node][0]]["supply"]):
+                        if(techTree.vs[constructionQueue[node][0]]["type"] != "Tech"):
+                            #Si hay 200 de suministro entonces no se agregarán mas suministros
+                            #Si se construye un pylon se aumentan los suministros
+                            if(constructionQueue[node][0] == 2):
+                                resources[2][1] += 5
+                                supplyLeft = resources[2][1] - resources[2][0]
+                            #Si se construye un nexus se aumentan los suministros
+                            if(constructionQueue[node][0] == 0):
+                                resources[2][1] += 15
+                                supplyLeft = resources[2][1] - resources[2][0]
+                            #Se agrega la unidad a brotherNodeQty
+                            brotherNodeQty[constructionQueue[node][0]][1] += 1
+                            #Se suman los suministros de unidades
+                            resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[node][0]]["supply"]
+                            #Se restan los suministros necesarios para construir la entidad en supplyLeft
+                            supplyLeft = supplyLeft - techTree.vs[constructionQueue[node][0]]["supply"]
+                            #Se elimina de la lista
+                            constructionQueue.pop(node)
+                        else:
+                            if(brotherNodeQty[constructionQueue[node][0]][1] > 0):
+                                constructionQueue.pop(node)
+                            else:
+                                #Se agrega la unidad a brotherNodeQty
+                                brotherNodeQty[constructionQueue[node][0]][1] += 1
+                #De lo contrario se le restara 1 gameSpeed y se mantendrá en la cola de construcción
+                else:
+                    constructionQueue[node][1] -= 1
+                #Aumenta el contador de la cola
+                node+=1
+        #Recolección de recursos (fija al numero de probes por el momento, las lines comentadas de abajo era una posible idea)
+        probesTotal = brotherNodeQty[15][1]
+        resources[0] += probesTotal*0.916
+        resources[1] += probesTotal
+            
+        #Se obtiene un numero random para definir el vertice que se construirá
+        nodeToBuild = random.randint(0,60)
+        #Se obtiene el camino mas corto para llegar a ese vertice
+        pathToNode = getPath(techTree, "Nexus", techTree.vs[nodeToBuild]["name"])
+        checkPrerequisites = True
+        #Se verifica si los prerrequisitos están construidos
+        if(len(pathToNode) > 0):
+            for vertexId in pathToNode[0]:
+                if(brotherNodeQty[vertexId][1] == 0 and vertexId != nodeToBuild):
+                    checkPrerequisites = False
+        if(techTree.vs[nodeToBuild]["type"] == "Tech" and brotherNodeQty[nodeToBuild][1] > 0):
+            checkPrerequisites = False
+        #Traza
+        #if(techTree.vs[nodeToBuild]["name"] == "Probe"):
+        #    print("Probe ", "minerales: ", resources[0], "gas: ", resources[1], "sum ", resources[2][0],"/",resources[2][1], " Estado: ", checkPrerequisites, "SupplyLeft: ", supplyLeft)
+        
+        #Se verifica que tenga los recursos suficientes para construir el vertice y que cumpla con los prerrequisitos
+        if(checkPrerequisites and resources[0] >= techTree.vs[nodeToBuild]["minerals"] and resources[1] >= techTree.vs[nodeToBuild]["gas"] and supplyLeft >= techTree.vs[nodeToBuild]["supply"]):
+            #Se agrega a la cola de construcción
+            constructionQueue.append([nodeToBuild, techTree.vs[nodeToBuild]["gameSpeed"]])
+            resources[0] = resources[0] - techTree.vs[nodeToBuild]["minerals"]
+            resources[1] = resources[1] - techTree.vs[nodeToBuild]["gas"]
+            brotherNodeQtyToAdd = []
+            for element in brotherNodeQty:
+                brotherNodeQtyToAdd.append(element)
+            constructionQueueToAdd = []
+            for element in constructionQueue:
+                constructionQueueToAdd.append(element)
+            #Se agrega al build order en el tiempo en que se ejecuta la acción de empezar a construir el vertice
+            brotherBuildOrder.append([time, techTree.vs[nodeToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1]), list(constructionQueueToAdd), list(brotherNodeQtyToAdd)])
+        #Si se logra la cantidad ingresada por el usuario se detiene la construcción
+        if((brotherNodeQty[entityId][1] == entityQty) or time == maxTime):
+            print("Se ha cumplido el requisito o se ha llegado al tiempo máximo...")
+            nextTic = False
+        else: 
+            time += 1
+    return brotherBuildOrder
+
+#Entrega un puntaje a la orden de construcción basado en el tiempo logrado y en las unidades restantes por construir
+def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime):
+    time = buildOrder[-1][0]
+    nodeQty = buildOrder[-1][7]
+    pathToNode = getPath(techTree, "Nexus", techTree.vs[entityId]["name"])
+    entitiesToBuild = len(pathToNode[0]) + entityQty
+    maxEntities = entitiesToBuild
+    for node in pathToNode[0]:
+        if(nodeQty[node][1] >= 1):
+            entitiesToBuild-=1
+    entitiesToBuild-=nodeQty[entityId][1]
+    entitiesBuilt = nodeQty[entityId][1]
+    score = 0.2*(time/maxTime) + 0.8*(entitiesToBuild/maxEntities)
+    result = [[time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]]
+    return(result)
+
+#Algoritmo Greedy, genera una solución después de muchas perturbaciones e iteraciones.
+def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations):
+    bestSolution = list(buildOrder)
+    bestScore = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime)
+    perturbedSolutions = []
+    iteration = 1
+    while(iteration <= iterations):
+        perturbation = 1
+        while(perturbation <= perturbations):
+            perturbedSolutions.append(perturbationFunction(bestSolution, techTree, entityId, entityQty, maxTime))
+            perturbation+=1
+        for solution in perturbedSolutions:
+            newScore = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime)
+            if(newScore < bestScore):
+                bestScore = newScore
+                bestSolution = list(solution)
+        iteration+=1
+    return bestSolution
 
 def showMenu(techTree):
     exit = 0
@@ -228,7 +419,8 @@ def showMenu(techTree):
         print("3: Buscar vértice por nombre")
         print("4: Encontrar el camino más corto")
         print("5: Obtener un orden de construcción aleatorio")
-        print("6: Salir")
+        print("6: Ejecutar algoritmo greedy")
+        print("7: Salir")
         print("")
         choice = input("Ingrese su elección: ")
         if(choice == "1"):
@@ -275,10 +467,54 @@ def showMenu(techTree):
                     if techTree.vs[id]["name"] == entityName:
                         entityId = id
                 entityQty = int(input("Ingrese la cantidad que desea obtener: "))
-                buildOrder = getRandomBuildOrder(techTree, entityId, entityQty)
+                maxTime = int(input("Ingrese el tiempo máximo que puede tener el build order: "))
+                buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
+                score = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime)
                 printBuildOrder(buildOrder)
+                print("")
+                print("El puntaje de esta orden de construcción es: ", score[0][-1])
+                print("Se obtuvieron ", score[0][2], "de ", score[0][4], "entidades seleccionados.")
+                print("")
+                perturbation = input("¿Desea aplicar la función de perturbación? (s/n): ")
+                if(perturbation == 's'):
+                    perturbatedBuildOrder = perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime)
+                    newScore = scoreBuildOrder(techTree, perturbatedBuildOrder, entityId, entityQty, maxTime)
+                    printBuildOrder(perturbatedBuildOrder)   
+                    print("")
+                    print("El puntaje de esta orden de construcción es: ", newScore[0][-1])
+                    print("Se obtuvieron ", newScore[0][2], "de ", newScore[0][4], "entidades seleccionados.")
+                    print("")
                 input("Presione enter para volver al menú...")
         elif(choice == "6"):
+            print("")
+            print("-- Ejecutar algoritmo Greedy --")
+            entityName = input("Ingrese el nombre de la entidad que desea obtener en el orden de construcción: ")
+            success = False
+            for name in techTree.vs["name"]:
+                if entityName == name:
+                    success = True
+            if success == False:
+                print("--- ERROR ---")
+                print("")
+                input("No existe esa entidad. Presione enter para volver al menú...")
+            else:
+                for id in techTree.vs["code"]:
+                    if techTree.vs[id]["name"] == entityName:
+                        entityId = id
+                entityQty = int(input("Ingrese la cantidad que desea obtener: "))
+                maxTime = int(input("Ingrese el tiempo máximo que puede tener el build order: "))
+                iterations = int(input("ingrese el número de generaciones: "))
+                perturbations = int(input("Ingrese el número de perturbaciones por generación: "))
+                buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
+                solution = greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations)
+                score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime)
+                printBuildOrder(solution)
+                print("")
+                print("El puntaje de esta orden de construcción es: ", score[0][-1])
+                print("Se obtuvieron ", score[0][2], "de ", score[0][4], "entidades seleccionados.")
+                print("")
+            input("Presione enter para volver al menú...")
+        elif(choice == "7"):
             print("")
             print("Cerrando programa...")
             exit = 1

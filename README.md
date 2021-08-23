@@ -18,7 +18,7 @@ Programa que permite encontrar órdenes de construcción en el juego Starcraft 2
   * Python 3.9.5.
   * De preferencia utilizar Sistema Operativo basado en linux.
  
-## Instalaciones necesarias
+## Instalaciones necesarias (Linux)
 
   * Pip:
 
