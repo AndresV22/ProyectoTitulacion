@@ -245,14 +245,23 @@ def printBuildOrder(buildOrder):
     for element in buildOrder:
         print(element[0], " | ", element[1], " | ", element[2], "/", element[3], " | ", element[4], " | ", element[5])
     print("")
+    print("- ¿Mostrar tabla de entidades construidas? -")
+    print("1: Si")
+    print("2: No")
+    print("")
+    showQties = int(input("Ingrese una opción: "))
+    if(showQties == 1):
+        print("-- Tabla de unidades construidas --")
+        for element in buildOrder[-1][7]:
+            print(element[0], " | ", element[1])
 
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime):
-    print("Tiempo final: ", buildOrder[-1][0])
+    #Traza: print("Tiempo final: ", buildOrder[-1][0])
     timeSelected = random.randint(buildOrder[0][0],buildOrder[-1][0])
-    print("Numero random: ", timeSelected)
+    #Traza: print("Numero random: ", timeSelected)
     brotherBuildOrder = []
     #Cantidad de unidades o de edificios en un determinado momento
     #Se agrega cada elemento del build order original al nuevo build order, hasta llegar al tiempo seleccionado
@@ -277,7 +286,7 @@ def perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime):
             if(node[0] == element[1]):
                 node[1] += 1
     
-    print("brotherNodeQty del BO hermano: ", brotherNodeQty[entityId][1], "Cantidad requerida: ", entityQty)
+    #Traza: print("brotherNodeQty del BO hermano: ", brotherNodeQty[entityId][1], "Cantidad requerida: ", entityQty)
     #resources = [Minerals, Vespene, Supply] | where Supply = [Units, Total]
     resources = []
     minerals = brotherBuildOrder[-1][4]
@@ -377,47 +386,78 @@ def perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime):
             #Se agrega al build order en el tiempo en que se ejecuta la acción de empezar a construir el vertice
             brotherBuildOrder.append([time, techTree.vs[nodeToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1]), list(constructionQueueToAdd), list(brotherNodeQtyToAdd)])
         #Si se logra la cantidad ingresada por el usuario se detiene la construcción
-        if((brotherNodeQty[entityId][1] == entityQty) or time == maxTime):
-            print("Se ha cumplido el requisito o se ha llegado al tiempo máximo...")
+        if((brotherNodeQty[entityId][1] == entityQty) or (time >= maxTime)):
+            #Traza: print("Se ha cumplido el requisito o se ha llegado al tiempo máximo...")
             nextTic = False
         else: 
             time += 1
     return brotherBuildOrder
 
 #Entrega un puntaje a la orden de construcción basado en el tiempo logrado y en las unidades restantes por construir
-def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime):
+def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime):
     time = buildOrder[-1][0]
     nodeQty = buildOrder[-1][7]
     pathToNode = getPath(techTree, "Nexus", techTree.vs[entityId]["name"])
-    entitiesToBuild = len(pathToNode[0]) + entityQty
-    maxEntities = entitiesToBuild
+    entitiesToBuild = len(pathToNode[0]) + entityQty #Son las entidades que se deben construir incluyendo prerrequisitos
+    maxEntities = len(pathToNode[0]) + entityQty #Total de entidades por construir
     for node in pathToNode[0]:
         if(nodeQty[node][1] >= 1):
-            entitiesToBuild-=1
-    entitiesToBuild-=nodeQty[entityId][1]
-    entitiesBuilt = nodeQty[entityId][1]
-    score = 0.2*(time/maxTime) + 0.8*(entitiesToBuild/maxEntities)
+            entitiesToBuild-=1 #Se restan los prerrequisitos si es que ya existen
+    entitiesBuilt = nodeQty[entityId][1] #Son las entidades solicitadas totales que ya fueron construidas
+    entitiesToBuild-=entitiesBuilt #Se restan las entidades solicitadas que ya fueron construidas
+    if(entitiesToBuild > 0):
+        score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))*100
+    else:
+        score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8)*100
     result = [[time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]]
     return(result)
 
 #Algoritmo Greedy, genera una solución después de muchas perturbaciones e iteraciones.
 def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations):
     bestSolution = list(buildOrder)
-    bestScore = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime)
-    perturbedSolutions = []
+    bestScore = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, 0)
     iteration = 1
     while(iteration <= iterations):
         perturbation = 1
+        perturbedSolutions = []
         while(perturbation <= perturbations):
-            perturbedSolutions.append(perturbationFunction(bestSolution, techTree, entityId, entityQty, maxTime))
+            perturbedSolutions.append(perturbationFunction(list(bestSolution), techTree, entityId, entityQty, maxTime))
             perturbation+=1
         for solution in perturbedSolutions:
-            newScore = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime)
-            if(newScore < bestScore):
+            newScore = scoreBuildOrder(techTree, list(solution), entityId, entityQty, maxTime, 0)
+            if(newScore > bestScore):
                 bestScore = newScore
                 bestSolution = list(solution)
         iteration+=1
     return bestSolution
+
+#Algoritmo de búsqueda local iterada
+def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS):
+    #Se obtiene una orden de construcción aleatoria y se aplica una busqueda local
+    buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
+    initialSolution = greedy(techTree, list(buildOrder), entityId, entityQty, maxTime, perturbations, iterations)
+    initialScore = scoreBuildOrder(techTree, list(initialSolution), entityId, entityQty, maxTime, 0)
+    iteration = 1
+    progress = 0
+    cls()
+    print("Calculando, por favor espere...")
+    print("Progreso: ", progress, "%")
+    #En cada iteración se perturba la solución inicial y se aplica otra búsqueda local
+    while(iteration <= iterationsILS):
+        cls()
+        print("Calculando, por favor espere...")
+        print("Progreso: ", progress, "%")
+        perturbatedSolution = perturbationFunction(list(initialSolution), techTree, entityId, entityQty, maxTime)
+        localSolution = greedy(techTree, list(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations)
+        score = scoreBuildOrder(techTree, list(localSolution), entityId, entityQty, maxTime, 0)
+        #Si el puntaje es mejor, se considera que la solución local es la solución inicial
+        if(score > initialScore):
+            initialSolution = []
+            initialSolution = list(localSolution)
+        progress = (iteration/iterationsILS)*100
+        iteration+=1
+    result = list(initialSolution)
+    return result
 
 def showMenu(techTree):
     exit = 0
@@ -432,7 +472,8 @@ def showMenu(techTree):
         print("4: Encontrar el camino más corto")
         print("5: Obtener un orden de construcción aleatorio")
         print("6: Ejecutar algoritmo greedy")
-        print("7: Salir")
+        print("7: Ejecutar algoritmo de búsqueda local iterada")
+        print("8: Salir")
         print("")
         choice = input("Ingrese su elección: ")
         if(choice == "1"):
@@ -481,7 +522,7 @@ def showMenu(techTree):
                 entityQty = int(input("Ingrese la cantidad que desea obtener: "))
                 maxTime = int(input("Ingrese el tiempo máximo que puede tener el build order: "))
                 buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
-                score = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime)
+                score = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, 0)
                 printBuildOrder(buildOrder)
                 print("")
                 print("El puntaje de esta orden de construcción es: ", score[0][-1])
@@ -490,7 +531,7 @@ def showMenu(techTree):
                 perturbation = input("¿Desea aplicar la función de perturbación? (s/n): ")
                 if(perturbation == 's'):
                     perturbatedBuildOrder = perturbationFunction(buildOrder, techTree, entityId, entityQty, maxTime)
-                    newScore = scoreBuildOrder(techTree, perturbatedBuildOrder, entityId, entityQty, maxTime)
+                    newScore = scoreBuildOrder(techTree, perturbatedBuildOrder, entityId, entityQty, maxTime, 0)
                     printBuildOrder(perturbatedBuildOrder)   
                     print("")
                     print("El puntaje de esta orden de construcción es: ", newScore[0][-1])
@@ -519,7 +560,7 @@ def showMenu(techTree):
                 perturbations = int(input("Ingrese el número de perturbaciones por generación: "))
                 buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
                 solution = greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations)
-                score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime)
+                score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime, 0)
                 printBuildOrder(solution)
                 print("")
                 print("El puntaje de esta orden de construcción es: ", score[0][-1])
@@ -527,6 +568,35 @@ def showMenu(techTree):
                 print("")
             input("Presione enter para volver al menú...")
         elif(choice == "7"):
+            print("")
+            print("-- Ejecutar algoritmo de búsqueda local iterada --")
+            entityName = input("Ingrese el nombre de la entidad que desea obtener en el orden de construcción: ")
+            success = False
+            for name in techTree.vs["name"]:
+                if entityName == name:
+                    success = True
+            if success == False:
+                print("--- ERROR ---")
+                print("")
+                input("No existe esa entidad. Presione enter para volver al menú...")
+            else:
+                for id in techTree.vs["code"]:
+                    if techTree.vs[id]["name"] == entityName:
+                        entityId = id
+                entityQty = int(input("Ingrese la cantidad que desea obtener: "))
+                maxTime = int(input("Ingrese el tiempo máximo que puede tener el build order: "))
+                iterations = int(input("ingrese el número de generaciones del algoritmo greedy: "))
+                perturbations = int(input("Ingrese el número de perturbaciones por generación del algoritmo greedy: "))
+                iterationsILS = int(input("Ingrese el número de iteraciones del algoritmo de búsqueda local iterada: "))
+                solution = iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS)
+                score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime, 0)
+                printBuildOrder(solution)
+                print("")
+                print("El puntaje de esta orden de construcción es: ", score[0][-1])
+                print("Se obtuvieron ", score[0][2], "de ", score[0][4], "entidades seleccionados.")
+                print("")
+            input("Presione enter para volver al menú...")
+        elif(choice == "8"):
             print("")
             print("Cerrando programa...")
             exit = 1
