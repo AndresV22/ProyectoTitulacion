@@ -406,9 +406,28 @@ def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime)
     entitiesBuilt = nodeQty[entityId][1] #Son las entidades solicitadas totales que ya fueron construidas
     entitiesToBuild-=entitiesBuilt #Se restan las entidades solicitadas que ya fueron construidas
     if(entitiesToBuild > 0):
-        score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))*100
+        score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))
     else:
-        score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8)*100
+        score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8)
+    result = [[time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]]
+    return(result)
+
+#Calcula el puntaje obtenido en el contexto de una iteración
+def scoreBuildOrderIterative(techTree, buildOrder, entityId, entityQty, maxTime, minTime, fatherTime):
+    time = buildOrder[-1][0]
+    nodeQty = buildOrder[-1][7]
+    pathToNode = getPath(techTree, "Nexus", techTree.vs[entityId]["name"])
+    entitiesToBuild = len(pathToNode[0]) + entityQty #Son las entidades que se deben construir incluyendo prerrequisitos
+    maxEntities = len(pathToNode[0]) + entityQty #Total de entidades por construir
+    for node in pathToNode[0]:
+        if(nodeQty[node][1] >= 1):
+            entitiesToBuild-=1 #Se restan los prerrequisitos si es que ya existen
+    entitiesBuilt = nodeQty[entityId][1] #Son las entidades solicitadas totales que ya fueron construidas
+    entitiesToBuild-=entitiesBuilt #Se restan las entidades solicitadas que ya fueron construidas
+    if(entitiesToBuild > 0):
+        score = (0.2*((fatherTime-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))
+    else:
+        score = (0.2*((fatherTime-minTime)/(maxTime-minTime)) + 0.8)
     result = [[time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]]
     return(result)
 
@@ -417,14 +436,21 @@ def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, it
     bestSolution = list(buildOrder)
     bestScore = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, 0)
     iteration = 1
+    minTimeOfGen = bestSolution[-1][0]
+    maxTimeOfGen = bestSolution[-1][0]
     while(iteration <= iterations):
         perturbation = 1
         perturbedSolutions = []
         while(perturbation <= perturbations):
-            perturbedSolutions.append(perturbationFunction(list(bestSolution), techTree, entityId, entityQty, maxTime))
+            perturbedSolutions.append(perturbationFunction(list(bestSolution), techTree, entityId, entityQty, minTimeOfGen))
             perturbation+=1
         for solution in perturbedSolutions:
-            newScore = scoreBuildOrder(techTree, list(solution), entityId, entityQty, maxTime, 0)
+            if(solution[-1][0] < minTimeOfGen):
+                minTimeOfGen = solution[-1][0]
+            if(solution[-1][0] > maxTimeOfGen):
+                maxTimeOfGen = solution[-1][0]
+        for solution in perturbedSolutions:
+            newScore = scoreBuildOrderIterative(techTree, list(solution), entityId, entityQty, maxTimeOfGen, minTimeOfGen, bestSolution[-1][0])
             if(newScore > bestScore):
                 bestScore = newScore
                 bestSolution = list(solution)
@@ -449,7 +475,7 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
         print("Progreso: ", progress, "%")
         perturbatedSolution = perturbationFunction(list(initialSolution), techTree, entityId, entityQty, maxTime)
         localSolution = greedy(techTree, list(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations)
-        score = scoreBuildOrder(techTree, list(localSolution), entityId, entityQty, maxTime, 0)
+        score = scoreBuildOrder(techTree, list(localSolution), entityId, entityQty, maxTime, initialSolution[-1][0])
         #Si el puntaje es mejor, se considera que la solución local es la solución inicial
         if(score > initialScore):
             initialSolution = []
