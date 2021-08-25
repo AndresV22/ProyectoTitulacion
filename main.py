@@ -3,6 +3,7 @@ import os
 import sys
 import random
 import copy
+import xlsxwriter
 
 # Para usar igraph es necesario instalarlo con "pip install python-igraph"
 
@@ -114,7 +115,7 @@ def getPath(graph, vertexFrom, vertexTo):
 
 #Obtiene un orden de construcción aleatorio acotado por un tiempo gameTime
 def getRandomBuildOrder(techTree, entityId, entityQty, maxTime):
-    print("EntityId: ", entityId, "EntityQty: ", entityQty)
+    print("Iniciando...")
     #resources = [Minerals, Vespene, Supply] | where Supply = [Units, Total]
     resources = [50, 0, [13, 15]]
     #Cantidad de unidades o de edificios en un determinado momento
@@ -245,15 +246,6 @@ def printBuildOrder(buildOrder):
     for element in buildOrder:
         print(element[0], " | ", element[1], " | ", element[2], "/", element[3], " | ", element[4], " | ", element[5])
     print("")
-    print("- ¿Mostrar tabla de entidades construidas? -")
-    print("1: Si")
-    print("2: No")
-    print("")
-    showQties = int(input("Ingrese una opción: "))
-    if(showQties == 1):
-        print("-- Tabla de unidades construidas --")
-        for element in buildOrder[-1][7]:
-            print(element[0], " | ", element[1])
 
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -409,7 +401,7 @@ def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime)
         score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))
     else:
         score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8)
-    result = [[time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]]
+    result = [time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]
     return(result)
 
 #Calcula el puntaje obtenido en el contexto de una iteración
@@ -428,7 +420,7 @@ def scoreBuildOrderIterative(techTree, buildOrder, entityId, entityQty, maxTime,
         score = (0.2*((fatherTime-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))
     else:
         score = (0.2*((fatherTime-minTime)/(maxTime-minTime)) + 0.8)
-    result = [[time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]]
+    result = [time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]
     return(result)
 
 #Algoritmo Greedy, genera una solución después de muchas perturbaciones e iteraciones.
@@ -451,7 +443,7 @@ def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, it
                 maxTimeOfGen = solution[-1][0]
         for solution in perturbedSolutions:
             newScore = scoreBuildOrderIterative(techTree, list(solution), entityId, entityQty, maxTimeOfGen, minTimeOfGen, bestSolution[-1][0])
-            if(newScore > bestScore):
+            if(newScore[-1] > bestScore[-1]):
                 bestScore = newScore
                 bestSolution = list(solution)
         iteration+=1
@@ -465,6 +457,7 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
     initialScore = scoreBuildOrder(techTree, list(initialSolution), entityId, entityQty, maxTime, 0)
     iteration = 1
     progress = 0
+    genScores = [["Generación", "Puntaje"]]
     cls()
     print("Calculando, por favor espere...")
     print("Progreso: ", progress, "%")
@@ -476,13 +469,45 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
         perturbatedSolution = perturbationFunction(list(initialSolution), techTree, entityId, entityQty, maxTime)
         localSolution = greedy(techTree, list(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations)
         score = scoreBuildOrder(techTree, list(localSolution), entityId, entityQty, maxTime, initialSolution[-1][0])
+        genScores.append([iteration, score[-1]])
         #Si el puntaje es mejor, se considera que la solución local es la solución inicial
-        if(score > initialScore):
+        if(score[-1] > initialScore[-1]):
             initialSolution = []
             initialSolution = list(localSolution)
         progress = (iteration/iterationsILS)*100
         iteration+=1
+
     result = list(initialSolution)
+
+    cls()
+    print("- Completado -")
+    generateFiles = input("¿Deseas guardar los resultados en archivos xlsx? (s/n): ")
+
+    if(generateFiles == 's' or generateFiles == 'S'):
+        with xlsxwriter.Workbook('genScores.xlsx') as workbook:
+            worksheet = workbook.add_worksheet()
+
+            for row_num, data in enumerate(genScores):
+                worksheet.write_row(row_num, 0, data)
+        
+        cleanResult = [["Time", "Entity", "Supply Occupied", "Total Supply", "Minerals", "Vespene"]]
+        for row in result:
+            cleanResult.append([row[0], row[1], row[2], row[3], row[4], row[5]])
+
+        with xlsxwriter.Workbook('BuildOrder_Solution.xlsx') as workbook:
+            worksheet = workbook.add_worksheet()
+
+            for row_num, data in enumerate(cleanResult):
+                worksheet.write_row(row_num, 0, data)
+        
+        entitiesBuilt = list(result[-1][-1])
+        
+        with xlsxwriter.Workbook('EntitiesBuilt.xlsx') as workbook:
+            worksheet = workbook.add_worksheet()
+
+            for row_num, data in enumerate(entitiesBuilt):
+                worksheet.write_row(row_num, 0, data)
+
     return result
 
 def showMenu(techTree):
@@ -551,8 +576,8 @@ def showMenu(techTree):
                 score = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, 0)
                 printBuildOrder(buildOrder)
                 print("")
-                print("El puntaje de esta orden de construcción es: ", score[0][-1])
-                print("Se obtuvieron ", score[0][2], "de ", score[0][4], "entidades seleccionados.")
+                print("El puntaje de esta orden de construcción es: ", score[-1])
+                print("Se obtuvieron ", score[2], "de ", score[4], "entidades seleccionados.")
                 print("")
                 perturbation = input("¿Desea aplicar la función de perturbación? (s/n): ")
                 if(perturbation == 's'):
@@ -560,8 +585,8 @@ def showMenu(techTree):
                     newScore = scoreBuildOrder(techTree, perturbatedBuildOrder, entityId, entityQty, maxTime, 0)
                     printBuildOrder(perturbatedBuildOrder)   
                     print("")
-                    print("El puntaje de esta orden de construcción es: ", newScore[0][-1])
-                    print("Se obtuvieron ", newScore[0][2], "de ", newScore[0][4], "entidades seleccionados.")
+                    print("El puntaje de esta orden de construcción es: ", newScore[-1])
+                    print("Se obtuvieron ", newScore[2], "de ", newScore[4], "entidades seleccionados.")
                     print("")
                 input("Presione enter para volver al menú...")
         elif(choice == "6"):
@@ -589,8 +614,8 @@ def showMenu(techTree):
                 score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime, 0)
                 printBuildOrder(solution)
                 print("")
-                print("El puntaje de esta orden de construcción es: ", score[0][-1])
-                print("Se obtuvieron ", score[0][2], "de ", score[0][4], "entidades seleccionados.")
+                print("El puntaje de esta orden de construcción es: ", score[-1])
+                print("Se obtuvieron ", score[2], "de ", score[4], "entidades seleccionados.")
                 print("")
             input("Presione enter para volver al menú...")
         elif(choice == "7"):
@@ -618,8 +643,8 @@ def showMenu(techTree):
                 score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime, 0)
                 printBuildOrder(solution)
                 print("")
-                print("El puntaje de esta orden de construcción es: ", score[0][-1])
-                print("Se obtuvieron ", score[0][2], "de ", score[0][4], "entidades seleccionados.")
+                print("El puntaje de esta orden de construcción es: ", score[-1])
+                print("Se obtuvieron ", score[2], "de ", score[4], "entidades seleccionados.")
                 print("")
             input("Presione enter para volver al menú...")
         elif(choice == "8"):

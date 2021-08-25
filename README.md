@@ -32,6 +32,12 @@ sudo apt install python3-pip
 pip install python-igraph
 ```
 
+  * XlsxWriter:
+
+```sh
+pip install XlsxWriter
+```
+
 ## Ejecución
 
 ```sh
