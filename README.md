@@ -38,6 +38,11 @@ pip install python-igraph
 pip install XlsxWriter
 ```
 
+  * R:
+```sh
+https://cran.r-project.org/
+```
+
 ## Ejecución
 
 ```sh
@@ -46,3 +51,13 @@ cd ProyectoTitulacion/Tech\ Tree/
 ```sh
 python3 main.py
 ```
+
+## Ejecución de irace
+
+```sh
+cd ProyectoTitulacion/Tech\ Tree/irace
+```
+```sh
+R -f irace-run.R
+```
+
