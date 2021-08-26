@@ -26,6 +26,6 @@
 ##    condition is satisfied, FALSE otherwise.
 
 # 1:            2:                              3: 4:      5:
-perturbations        "--pert="        i  (1, 5)
-iterations        "--iter="        i  (1, 5)
-iterationsils        "--iterils="        i  (1, 5)
+perturbations        "--pert="        i  (10, 40)
+iterations        "--iter="        i  (10, 40)
+iterationsils        "--iterils="        i  (10, 40)

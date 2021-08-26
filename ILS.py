@@ -291,15 +291,10 @@ def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime)
     entitiesBuilt = nodeQty[entityId][1] #Son las entidades solicitadas totales que ya fueron construidas
     entitiesToBuild-=entitiesBuilt #Se restan las entidades solicitadas que ya fueron construidas
     if(entitiesToBuild > 0 and maxTime != minTime):
-        print("e>0 - división en tiempo: ", maxTime-minTime)
-        print("e>0 - división en entidades: ", maxEntities)
         score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8*(entitiesToBuild/maxEntities))
     if(entitiesToBuild <= 0 and maxTime != minTime):
-        print("e<0 - división en tiempo: ", maxTime-minTime)
         score = (0.2*((time-minTime)/(maxTime-minTime)) + 0.8)
     if(entitiesToBuild > 0 and maxTime == minTime):
-        print("e>0 - división en tiempo: ", maxTime-minTime)
-        print("e>0 - división en entidades: ", maxEntities)
         score = (0.8*(entitiesToBuild/maxEntities))
     if(entitiesToBuild <= 0 and maxTime == minTime):
         score = 0
