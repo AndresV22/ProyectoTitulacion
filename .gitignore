@@ -1,2 +1,6 @@
 __pycache__/
 **/.idea/
+DATFILE
+main/output/BuildOrder_Solution.xlsx
+main/output/EntitiesBuilt.xlsx
+main/output/genScores.xlsx

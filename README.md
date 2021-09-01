@@ -46,7 +46,7 @@ https://cran.r-project.org/
 ## Ejecución
 
 ```sh
-cd ProyectoTitulacion/Tech\ Tree/
+cd ProyectoTitulacion/main/
 ```
 ```sh
 python3 main.py
@@ -55,9 +55,17 @@ python3 main.py
 ## Ejecución de irace
 
 ```sh
-cd ProyectoTitulacion/Tech\ Tree/irace
+cd ProyectoTitulacion/irace
 ```
 ```sh
 R -f irace-run.R
 ```
+## Salida
 
+Al ejecutar el algoritmo de búsqueda local iterada con la opción 7 del menú se generarán
+4 archivos .xlsx:
+
+1) BuildOrder_Solution: Orden de construcción.
+2) genScores: Puntajes obtenidos por generación en el algoritmo greedy.
+3) EntitiesBuilt: Entidades (Unidades/Edificios/Tecnologías) construidas.
+4) constructionQueue: Cola de construcción al momento de detener el orden de construcción.

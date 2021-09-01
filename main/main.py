@@ -1,6 +1,6 @@
 import sys
 from techTree import *
-from ILS import *
+from iteratedLocalSearch import *
 
 def showMenu(techTree):
     exit = 0
@@ -127,17 +127,20 @@ def showMenu(techTree):
                     if techTree.vs[id]["name"] == entityName:
                         entityId = id
                 entityQty = int(input("Ingrese la cantidad que desea obtener: "))
-                maxTime = int(input("Ingrese el tiempo máximo que puede tener el build order: "))
+                maxTime = int(input("Ingrese el tiempo máximo (en segundos) del build order: "))
                 iterations = int(input("ingrese el número de generaciones del algoritmo greedy: "))
                 perturbations = int(input("Ingrese el número de perturbaciones por generación del algoritmo greedy: "))
                 iterationsILS = int(input("Ingrese el número de iteraciones del algoritmo de búsqueda local iterada: "))
-                solution = iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS)
+                solution = iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS, 1)
                 score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime, 0)
                 printBuildOrder(solution)
+                print("")
+                print("Se han generado archivos .xls con los resutlados.")
                 print("")
                 print("El puntaje de esta orden de construcción es: ", score[-1])
                 print("Se obtuvieron ", score[2], "de ", score[4], "entidades seleccionados.")
                 print("")
+                
             input("Presione enter para volver al menú...")
         elif(choice == "8"):
             print("")

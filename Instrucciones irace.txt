@@ -1,7 +1,0 @@
-Abrir R en consola
-
-Ejecutar los siguientes comandos:
-    library('irace')
-    scenario <- readScenario(filename = "scenario.txt", scenario = defaultScenario())
-    parameters <- readParameters(file = "parameters.txt")
-    irace(scenario = scenario, parameters = parameters)
