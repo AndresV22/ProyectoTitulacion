@@ -39,7 +39,7 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
     cls()
     print("- Completado -")
     if(exportXls == 1):
-        with xlsxwriter.Workbook('results/genScores.xlsx') as workbook:
+        with xlsxwriter.Workbook('results/Generations_Scores.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
 
             for row_num, data in enumerate(genScores):
@@ -49,7 +49,7 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
         for row in result:
             cleanResult.append([str(datetime.timedelta(seconds=row[0])), row[1], row[2], row[3], row[4], row[5]])
 
-        with xlsxwriter.Workbook('results/BuildOrder_Solution.xlsx') as workbook:
+        with xlsxwriter.Workbook('results/Build_Order.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
 
             for row_num, data in enumerate(cleanResult):
@@ -57,7 +57,7 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
         
         entitiesBuilt = list(result[-1][-1])
         
-        with xlsxwriter.Workbook('results/EntitiesBuilt.xlsx') as workbook:
+        with xlsxwriter.Workbook('results/Entities_Built.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
 
             for row_num, data in enumerate(entitiesBuilt):

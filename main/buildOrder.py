@@ -11,6 +11,9 @@ def getRandomBuildOrder(techTree, entityId, entityQty, maxTime):
     resources = [50, 0, [13, 15]]
     #Cantidad de unidades o de edificios en un determinado momento
     nodeQty = []
+    unitQueue = [["Nexus", [], []]]
+    #Se crea la cola de construcción por edificio
+    #Se crea el arreglo que contiene la cantidad de entidades
     for name in techTree.vs["name"]:
         nodeQty.append([name, 0])
     #Hay 13 probes al inicio y 1 nexus
@@ -26,53 +29,51 @@ def getRandomBuildOrder(techTree, entityId, entityQty, maxTime):
     while(nextTic):
         #Se verifica si hay alguna unidad, edificio o tecnología que requiera terminar de construirse
 
-        #Traza
-        #print(constructionQueue)
+        for building in unitQueue:
+            if (len(building[1]) > 0):
+                if(building[1][0] == 0):
+                    #Se agrega la unidad a nodeQty
+                    nodeQty[building[1][0]][1] += 1
+                    #Se suman los suministros de unidades
+                    resources[2][0] = resources[2][0] + techTree.vs[building[1][0]]["supply"]
+                    #Se restan los suministros necesarios para construir la entidad en supplyLeft
+                    supplyLeft = supplyLeft - techTree.vs[building[1][0]]["supply"]
+                    #Se elimina de la lista
+                    building[1].pop(0)
+                    building[2].pop(0)
+                else:
+                    building[1][0]-=1
 
         if(len(constructionQueue) > 0):
             node = 0
             while(node < len(constructionQueue)):
                 #Si ya pasó el tiempo de construcción se agregará a nodeQty
                 if(constructionQueue[node][1] == 0):
-                    #Se verifica que queden suministros para agregar la unidad de ser necesario
-                    if(supplyLeft >= techTree.vs[constructionQueue[node][0]]["supply"]):
-                        if(techTree.vs[constructionQueue[node][0]]["type"] != "Tech"):
-                            #Si hay 200 de suministro entonces no se agregarán mas suministros
-                            #Si se construye un pylon se aumentan los suministros
-                            if(constructionQueue[node][0] == 2):
-                                resources[2][1] += 5
-                                supplyLeft = resources[2][1] - resources[2][0]
-                            #Si se construye un nexus se aumentan los suministros
-                            if(constructionQueue[node][0] == 0):
-                                resources[2][1] += 15
-                                supplyLeft = resources[2][1] - resources[2][0]
-                            #Si se construye un asimilador se verifica si es posible construirlo
-                            availableAssimilators = 2*nodeQty[0][1]
-                            if(constructionQueue[node][0] != 1):
-                                #Se agrega la unidad a nodeQty
-                                nodeQty[constructionQueue[node][0]][1] += 1
-                                #Se suman los suministros de unidades
-                                resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[node][0]]["supply"]
-                                #Se restan los suministros necesarios para construir la entidad en supplyLeft
-                                supplyLeft = supplyLeft - techTree.vs[constructionQueue[node][0]]["supply"]
-                                #Se elimina de la lista
-                                constructionQueue.pop(node)
-                            else:
-                                if(nodeQty[1][1] < availableAssimilators):
-                                   #Se agrega la unidad a nodeQty
-                                    nodeQty[constructionQueue[node][0]][1] += 1
-                                    #Se suman los suministros de unidades
-                                    resources[2][0] = resources[2][0] + techTree.vs[constructionQueue[node][0]]["supply"]
-                                    #Se restan los suministros necesarios para construir la entidad en supplyLeft
-                                    supplyLeft = supplyLeft - techTree.vs[constructionQueue[node][0]]["supply"]
-                                    #Se elimina de la lista
-                                    constructionQueue.pop(node)
-                        else:
-                            if(nodeQty[constructionQueue[node][0]][1] > 0):
-                                constructionQueue.pop(node)
-                            else:
-                                #Se agrega la unidad a nodeQty
-                                nodeQty[constructionQueue[node][0]][1] += 1
+                    #Si hay 200 de suministro entonces no se agregarán mas suministros
+                    #Si se construye un pylon se aumentan los suministros
+                    if(constructionQueue[node][0] == 2):
+                        resources[2][1] += 5
+                        supplyLeft = resources[2][1] - resources[2][0]
+                    #Si se construye un nexus se aumentan los suministros
+                    if(constructionQueue[node][0] == 0):
+                        resources[2][1] += 15
+                        supplyLeft = resources[2][1] - resources[2][0]
+                    #Si se construye un asimilador se verifica si es posible construirlo
+                    availableAssimilators = 2*nodeQty[0][1]
+                    if(constructionQueue[node][0] != 1):
+                        #Se agrega la unidad a nodeQty
+                        nodeQty[constructionQueue[node][0]][1] += 1
+                        #Se agrega el edificio a unitQueue
+                        if(constructionQueue[node][0] != 2):
+                            unitQueue.append([techTree.vs[constructionQueue[node][0]]["name"], [], []])
+                        #Se elimina de la lista
+                        constructionQueue.pop(node)
+                    else:
+                        if(nodeQty[1][1] < availableAssimilators):
+                            #Se agrega la unidad a nodeQty
+                            nodeQty[constructionQueue[node][0]][1] += 1
+                            #Se elimina de la lista
+                            constructionQueue.pop(node)
                 #De lo contrario se le restara 1 gameSpeed y se mantendrá en la cola de construcción
                 else:
                     constructionQueue[node][1] -= 1
@@ -127,12 +128,23 @@ def getRandomBuildOrder(techTree, entityId, entityQty, maxTime):
         
         #Se verifica que tenga los recursos suficientes para construir el vertice y que cumpla con los prerrequisitos
         if(checkPrerequisites and resources[0] >= techTree.vs[nodeToBuild]["minerals"] and resources[1] >= techTree.vs[nodeToBuild]["gas"] and supplyLeft >= techTree.vs[nodeToBuild]["supply"]):
-            #Se agrega a la cola de construcción
-            constructionQueue.append([nodeToBuild, techTree.vs[nodeToBuild]["gameSpeed"]])
+            #Se agrega a la cola de construcción de unidad/tecnología
+            if(techTree.vs[nodeToBuild]["type"] != "Building"):
+                allocated = False
+                for building in unitQueue:
+                    if(building[0] == techTree.vs[pathToNode[0][-2]]["name"] and allocated == False):
+                        if(len(building[1]) < 5):
+                            building[1].append(techTree.vs[nodeToBuild]["code"])
+                            building[2].append(techTree.vs[nodeToBuild]["gameSpeed"])
+                            allocated = True
+            else: 
+                #Se agrega a la cola de construcción de edificios
+                constructionQueue.append([nodeToBuild, techTree.vs[nodeToBuild]["gameSpeed"]])
             resources[0] = resources[0] - techTree.vs[nodeToBuild]["minerals"]
             resources[1] = resources[1] - techTree.vs[nodeToBuild]["gas"]
             nodeQtyToAdd = nodeQty.copy()
-            constructionQueueToAdd = constructionQueue.copy()
+            unitQueueToAdd = list(unitQueue)
+            constructionQueueToAdd = list(constructionQueue)
             #Se agrega al build order en el tiempo en que se ejecuta la acción de empezar a construir el vertice
             buildOrder.append([time, techTree.vs[nodeToBuild]["name"], resources[2][0], resources[2][1], int(resources[0]), int(resources[1]), constructionQueueToAdd.copy(), nodeQtyToAdd.copy()])
         #Si se logra la cantidad ingresada por el usuario se detiene la construcción
