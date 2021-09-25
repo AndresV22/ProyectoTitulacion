@@ -65,7 +65,6 @@ R -f irace-run.R
 Al ejecutar el algoritmo de búsqueda local iterada con la opción 7 del menú se generarán
 4 archivos .xlsx:
 
-1) BuildOrder_Solution: Orden de construcción.
-2) genScores: Puntajes obtenidos por generación en el algoritmo greedy.
-3) EntitiesBuilt: Entidades (Unidades/Edificios/Tecnologías) construidas.
-4) constructionQueue: Cola de construcción al momento de detener el orden de construcción.
+1) Build_Order: Orden de construcción.
+2) Generations_Scores: Puntajes obtenidos por generación en el algoritmo greedy.
+3) Entities_Built: Entidades (Unidades/Edificios/Tecnologías) construidas.

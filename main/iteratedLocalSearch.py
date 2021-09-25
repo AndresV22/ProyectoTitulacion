@@ -5,16 +5,17 @@ import logging
 import sys
 import datetime
 from buildOrder import *
+from copy import deepcopy
 
 #Algoritmo de búsqueda local iterada
 def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS, exportXls):
     #Se obtiene una orden de construcción aleatoria y se aplica una busqueda local
     buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
-    initialSolution = greedy(techTree, list(buildOrder), entityId, entityQty, maxTime, perturbations, iterations)
-    initialScore = scoreBuildOrder(techTree, list(initialSolution), entityId, entityQty, maxTime, 0)
+    bestSolution = greedy(techTree, deepcopy(buildOrder), entityId, entityQty, maxTime, perturbations, iterations)
+    bestScore = scoreBuildOrder(techTree, deepcopy(bestSolution), entityId, entityQty, maxTime, 0)
+    genScores = [["Generación", "Puntaje"]]
     iteration = 1
     progress = 0
-    genScores = [["Generación", "Puntaje"]]
     cls()
     print("Calculando, por favor espere...")
     print("Progreso: ", progress, "%")
@@ -23,18 +24,19 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
         cls()
         print("Calculando, por favor espere...")
         print("Progreso: ", progress, "%")
-        perturbatedSolution = perturbationFunction(list(initialSolution), techTree, entityId, entityQty, maxTime)
-        localSolution = greedy(techTree, list(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations)
-        score = scoreBuildOrder(techTree, list(localSolution), entityId, entityQty, maxTime, initialSolution[-1][0])
+        perturbatedSolution = perturbationFunction(deepcopy(bestSolution), techTree, entityId, entityQty, maxTime)
+        localSolution = greedy(techTree, deepcopy(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations)
+        score = scoreBuildOrder(techTree, deepcopy(localSolution), entityId, entityQty, maxTime, bestSolution[-1][0])
         genScores.append([iteration, score[-1]])
         #Si el puntaje es mejor, se considera que la solución local es la solución inicial
-        if(score[-1] > initialScore[-1]):
-            initialSolution = []
-            initialSolution = list(localSolution)
+        if(score[-1] > bestScore[-1]):
+            bestSolution = []
+            bestSolution = deepcopy(localSolution)
+            bestScore = score
         progress = (iteration/iterationsILS)*100
         iteration+=1
 
-    result = list(initialSolution)
+    result = [deepcopy(bestSolution), bestScore]
 
     cls()
     print("- Completado -")
@@ -45,9 +47,9 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
             for row_num, data in enumerate(genScores):
                 worksheet.write_row(row_num, 0, data)
         
-        cleanResult = [["Time", "Entity", "Supply Occupied", "Total Supply", "Minerals", "Vespene"]]
-        for row in result:
-            cleanResult.append([str(datetime.timedelta(seconds=row[0])), row[1], row[2], row[3], row[4], row[5]])
+        cleanResult = [["Time", "Entity", "Supply Occupied", "Total Supply", "Minerals", "Vespene", "Chronoboost"]]
+        for row in result[0]:
+            cleanResult.append([str(datetime.timedelta(seconds=row[0])), row[1], row[2], row[3], row[4], row[5], row[10]])
 
         with xlsxwriter.Workbook('results/Build_Order.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
@@ -55,39 +57,65 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
             for row_num, data in enumerate(cleanResult):
                 worksheet.write_row(row_num, 0, data)
         
-        entitiesBuilt = list(result[-1][-1])
-        
+        entitiesBuilt = deepcopy(result[0][-1][7])
         with xlsxwriter.Workbook('results/Entities_Built.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
 
             for row_num, data in enumerate(entitiesBuilt):
+                worksheet.write_row(row_num, 0, data)
+        
+        unitQueue = deepcopy(result[0][-1][8])
+        resultUnitQueue = [["building", "units being built", "time left"]]
+        for building in unitQueue:
+            resultUnitQueue.append([building[0], ', '.join([str(item) for item in building[1]]), ',  '.join([str(item) for item in building[2]])])
+        
+        with xlsxwriter.Workbook('results/Unit_Queue.xlsx') as workbook:
+            worksheet = workbook.add_worksheet()
+
+            for row_num, data in enumerate(resultUnitQueue):
+                worksheet.write_row(row_num, 0, data)
+
+        archonQueue = deepcopy(result[0][-1][9])
+        resultArchonQueue = [["Archon", "Qty", "Time left"]]
+        for archon in archonQueue:
+            resultArchonQueue.append([archon[0], archon[1], archon[2]])
+        with xlsxwriter.Workbook('results/Archon_Queue.xlsx') as workbook:
+            worksheet = workbook.add_worksheet()
+
+            for row_num, data in enumerate(resultArchonQueue):
                 worksheet.write_row(row_num, 0, data)
 
     return result
 
 #Algoritmo Greedy, genera una solución después de muchas perturbaciones e iteraciones.
 def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations):
-    bestSolution = list(buildOrder)
+    bestSolution = deepcopy(buildOrder)
     bestScore = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, 0)
     iteration = 1
-    minTimeOfGen = bestSolution[-1][0]
     while(iteration <= iterations):
+        minTimeOfGen = 0
+        maxTimeOfGen = 0
         perturbation = 1
         perturbedSolutions = []
         while(perturbation <= perturbations):
-            perturbedSolutions.append(perturbationFunction(list(bestSolution), techTree, entityId, entityQty, minTimeOfGen))
+            perturbedSolution = perturbationFunction(deepcopy(bestSolution), techTree, entityId, entityQty, minTimeOfGen)
+            perturbedSolutions.append(perturbedSolution)
+            if(minTimeOfGen == 0):
+                minTimeOfGen = perturbedSolution[-1][0]
+            elif(minTimeOfGen > perturbedSolution[-1][0]):
+                minTimeOfGen = perturbedSolution[-1][0]
+            if(perturbedSolution[-1][0] > maxTimeOfGen):
+                maxTimeOfGen = perturbedSolution[-1][0]
             perturbation+=1
         for solution in perturbedSolutions:
-            if(solution[-1][0] < minTimeOfGen):
-                minTimeOfGen = solution[-1][0]
-        for solution in perturbedSolutions:
-            newScore = scoreBuildOrder(techTree, list(solution), entityId, entityQty, maxTime, minTimeOfGen)
+            newScore = scoreBuildOrderIterated(techTree, deepcopy(solution), entityId, entityQty, maxTimeOfGen, minTimeOfGen, bestSolution[-1][0])
             if(newScore[-1] > bestScore[-1]):
                 bestScore = newScore
-                bestSolution = list(solution)
+                bestSolution = deepcopy(solution)
         iteration+=1
     return bestSolution
 
+#Esta función la ejecuta IRACE para paremetrizar los algoritmos de búsqueda local
 def main(PERT, ITER, ITERILS, DATFILE):
     techTree = initTechTree()
     entityId = 16
