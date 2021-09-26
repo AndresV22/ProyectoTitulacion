@@ -78,7 +78,7 @@ def showMenu(techTree):
                     printBuildOrder(perturbatedBuildOrder)   
                     print("")
                     print("El puntaje de esta orden de construcción es: ", newScore[-1])
-                    print("Se obtuvieron ", newScore[2], "de ", newScore[4], "entidades seleccionados.")
+                    print("Se obtuvieron ", newScore[2], "de ", newScore[4], " ", techTree.vs[entityId]["name"]," seleccionados.")
                     print("")
                 input("Presione enter para volver al menú...")
         elif(choice == "6"):
@@ -107,7 +107,7 @@ def showMenu(techTree):
                 printBuildOrder(solution)
                 print("")
                 print("El puntaje de esta orden de construcción es: ", score[-1])
-                print("Se obtuvieron ", score[2], "de ", score[4], "entidades seleccionados.")
+                print("Se obtuvieron ", score[2], "de ", score[4], " ", entityQty, techTree.vs[entityId]["name"], " seleccionados.")
                 print("")
             input("Presione enter para volver al menú...")
         elif(choice == "7"):
@@ -149,7 +149,8 @@ def showMenu(techTree):
                 print("Se han generado archivos .xls con los resutlados.")
                 print("")
                 print("El puntaje de esta orden de construcción es: ", solution[1][-1])
-                print("Se obtuvieron ", solution[0][-1][7][entityId][1], "de ", entityQty, "entidades seleccionados.")
+                print("Se obtuvieron ", solution[0][-1][7][entityId][1], "de ", entityQty, techTree.vs[entityId]["name"], " seleccionados.")
+                print("Tiempo pedido: ", maxTime, " | Tiempo final: ", solution[-1][0])
                 print("")
                 
             input("Presione enter para volver al menú...")
