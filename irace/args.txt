@@ -1,1 +1,1 @@
-['../main/iteratedLocalSearch.py', '-v', '--pert=23', '--iter=21', '--iterils=36', '--datfile', 'c54-3.dat']
+['../main/iteratedLocalSearch.py', '-v', '--pert=33', '--iter=20', '--iterils=19', '--datfile', 'c7-3.dat']
