@@ -12,8 +12,8 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
     #Se obtiene una orden de construcción aleatoria y se aplica una busqueda local
     buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
     bestSolution = greedy(techTree, deepcopy(buildOrder), entityId, entityQty, maxTime, perturbations, iterations)
-    bestScore = scoreBuildOrder(techTree, deepcopy(bestSolution), entityId, entityQty, maxTime, 0)
-    genScores = [["Generación", "Puntaje"]]
+    bestScore = scoreBuildOrder(techTree, deepcopy(bestSolution[0]), entityId, entityQty, maxTime, 0)
+    genResults = [["Generación", "Puntaje", "Tiempo", "Entidades construidas"]]
     iteration = 1
     progress = 0
     cls()
@@ -24,14 +24,13 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
         cls()
         print("Calculando, por favor espere...")
         print("Progreso: ", progress, "%")
-        perturbatedSolution = perturbationFunction(deepcopy(bestSolution), techTree, entityId, entityQty, maxTime)
+        perturbatedSolution = perturbationFunction(deepcopy(bestSolution[0]), techTree, entityId, entityQty, maxTime)
         localSolution = greedy(techTree, deepcopy(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations)
-        score = scoreBuildOrder(techTree, deepcopy(localSolution), entityId, entityQty, maxTime, bestSolution[-1][0])
-        genScores.append([iteration, score[-1]])
+        score = scoreBuildOrder(techTree, localSolution[0], entityId, entityQty, bestSolution[0][-1][0], 0)
+        genResults.append([iteration, score[-1], localSolution[0][-1][0], localSolution[0][-1][7][entityId][1]])
         #Si el puntaje es mejor, se considera que la solución local es la solución inicial
-        if(score[-1] > bestScore[-1]):
-            bestSolution = []
-            bestSolution = deepcopy(localSolution)
+        if(localSolution[0][-1][0] < bestSolution[0][-1][0] and localSolution[0][-1][7][entityId][1] >= bestSolution[0][-1][7][entityId][1]):
+            bestSolution = [deepcopy(localSolution[0]), score]
             bestScore = score
         progress = (iteration/iterationsILS)*100
         iteration+=1
@@ -41,14 +40,15 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
     cls()
     print("- Completado -")
     if(exportXls == 1):
+
         with xlsxwriter.Workbook('results/Generations_Scores.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
 
-            for row_num, data in enumerate(genScores):
+            for row_num, data in enumerate(genResults):
                 worksheet.write_row(row_num, 0, data)
         
         cleanResult = [["Time", "Entity", "Supply Occupied", "Total Supply", "Minerals", "Vespene", "Chronoboost"]]
-        for row in result[0]:
+        for row in result[0][0]:
             cleanResult.append([str(datetime.timedelta(seconds=row[0])), row[1], row[2], row[3], row[4], row[5], row[10]])
 
         with xlsxwriter.Workbook('results/Build_Order.xlsx') as workbook:
@@ -57,14 +57,14 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
             for row_num, data in enumerate(cleanResult):
                 worksheet.write_row(row_num, 0, data)
         
-        entitiesBuilt = deepcopy(result[0][-1][7])
+        entitiesBuilt = deepcopy(result[0][0][-1][7])
         with xlsxwriter.Workbook('results/Entities_Built.xlsx') as workbook:
             worksheet = workbook.add_worksheet()
 
             for row_num, data in enumerate(entitiesBuilt):
                 worksheet.write_row(row_num, 0, data)
         
-        unitQueue = deepcopy(result[0][-1][8])
+        unitQueue = deepcopy(result[0][0][-1][8])
         resultUnitQueue = [["building", "units being built", "time left"]]
         for building in unitQueue:
             resultUnitQueue.append([building[0], ', '.join([str(item) for item in building[1]]), ',  '.join([str(item) for item in building[2]])])
@@ -75,7 +75,7 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
             for row_num, data in enumerate(resultUnitQueue):
                 worksheet.write_row(row_num, 0, data)
 
-        archonQueue = deepcopy(result[0][-1][9])
+        archonQueue = deepcopy(result[0][0][-1][9])
         resultArchonQueue = [["Archon", "Qty", "Time left"]]
         for archon in archonQueue:
             resultArchonQueue.append([archon[0], archon[1], archon[2]])
@@ -90,8 +90,9 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
 #Algoritmo Greedy, genera una solución después de muchas perturbaciones e iteraciones.
 def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations):
     bestSolution = deepcopy(buildOrder)
-    bestScore = scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, 0)
+    bestScore = [1]
     iteration = 1
+    greedyResults = [["iteracion", "perturbaciones", "tiempo", "entidades"]]
     while(iteration <= iterations):
         minTimeOfGen = 0
         maxTimeOfGen = 0
@@ -108,12 +109,20 @@ def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, it
                 maxTimeOfGen = perturbedSolution[-1][0]
             perturbation+=1
         for solution in perturbedSolutions:
-            newScore = scoreBuildOrderIterated(techTree, deepcopy(solution), entityId, entityQty, maxTimeOfGen, minTimeOfGen, bestSolution[-1][0])
-            if(newScore[-1] > bestScore[-1]):
+            newScore = scoreBuildOrder(techTree, deepcopy(solution), entityId, entityQty, maxTimeOfGen, minTimeOfGen)
+            if(newScore[-1] < bestScore[-1]):
                 bestScore = newScore
                 bestSolution = deepcopy(solution)
+            greedyResults.append([iteration, perturbations, solution[-1][0], solution[-1][7][entityId][1]])
         iteration+=1
-    return bestSolution
+
+    with xlsxwriter.Workbook('results/Greedy_results.xlsx') as workbook:
+            worksheet = workbook.add_worksheet()
+
+            for row_num, data in enumerate(greedyResults):
+                worksheet.write_row(row_num, 0, data)
+
+    return [bestSolution, bestScore]
 
 #Esta función la ejecuta IRACE para paremetrizar los algoritmos de búsqueda local
 def main(PERT, ITER, ITERILS, DATFILE):

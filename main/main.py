@@ -103,11 +103,11 @@ def showMenu(techTree):
                 perturbations = int(input("Ingrese el número de perturbaciones por generación: "))
                 buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
                 solution = greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations)
-                score = scoreBuildOrder(techTree, solution, entityId, entityQty, maxTime, 0)
-                printBuildOrder(solution)
+                score = scoreBuildOrder(techTree, solution[0], entityId, entityQty, maxTime, 0)
+                printBuildOrder(solution[0])
                 print("")
                 print("El puntaje de esta orden de construcción es: ", score[-1])
-                print("Se obtuvieron ", score[2], "de ", score[4], " ", entityQty, techTree.vs[entityId]["name"], " seleccionados.")
+                print("Se obtuvieron ", score[2], "de ", entityQty, techTree.vs[entityId]["name"], " seleccionados.")
                 print("")
             input("Presione enter para volver al menú...")
         elif(choice == "7"):
@@ -137,20 +137,24 @@ def showMenu(techTree):
                     print("Perturbaciónes por iteración: 21")
                     print("Iteraciones Búsqueda local iterada: 11")
                 else:
-                    if(default != "n" and default != "N"):
+                    if(default == "n" or default == "N"):
+                        iterations = int(input("ingrese el número de generaciones del algoritmo greedy: "))
+                        perturbations = int(input("Ingrese el número de perturbaciones por generación del algoritmo greedy: "))
+                        iterationsILS = int(input("Ingrese el número de iteraciones del algoritmo de búsqueda local iterada: "))
+                    else:
                         print("Entrada inválida. Se usarán valores por default.")
-                    iterations = int(input("ingrese el número de generaciones del algoritmo greedy: "))
-                    perturbations = int(input("Ingrese el número de perturbaciones por generación del algoritmo greedy: "))
-                    iterationsILS = int(input("Ingrese el número de iteraciones del algoritmo de búsqueda local iterada: "))
+                        iterations = 20
+                        perturbations = 21
+                        iterationsILS = 11
                 cls()
                 solution = iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS, 1)
-                printBuildOrder(solution[0])
+                printBuildOrder(solution[0][0])
                 print("")
                 print("Se han generado archivos .xls con los resutlados.")
                 print("")
-                print("El puntaje de esta orden de construcción es: ", solution[1][-1])
-                print("Se obtuvieron ", solution[0][-1][7][entityId][1], "de ", entityQty, techTree.vs[entityId]["name"], " seleccionados.")
-                print("Tiempo pedido: ", maxTime, " | Tiempo final: ", solution[-1][0])
+                print("El puntaje de esta orden de construcción es: ", solution[0][1][-1])
+                print("Se obtuvieron ", solution[0][0][-1][7][entityId][1], "de ", entityQty, techTree.vs[entityId]["name"], " seleccionados.")
+                print("Tiempo pedido: ", maxTime, " | Tiempo final: ", solution[0][-1][0])
                 print("")
                 
             input("Presione enter para volver al menú...")

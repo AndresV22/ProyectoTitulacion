@@ -599,65 +599,27 @@ def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime)
         if(techTree.vs[index]["type"] == "Unit"):
             totalUnits += nodeQty[index][1]
         index+=1
-    
-    #Se añaden bonus al puntaje, por cantidad de unidades y por haber cumplido el objetivo
-    unitsBonus = totalUnits/200
-    if(entitiesToBuild > 0 and maxTime != minTime):
-        score = (0.15*(timeRate(time, maxTime, minTime)) + 0.75*((entitiesBuilt)/objEntities) + 0.1*unitsBonus)
-    if(entitiesToBuild <= 0 and maxTime != minTime):
-        score = (0.15*(timeRate(time, maxTime, minTime)) + 0.75 + 0.1*unitsBonus)
-    if(entitiesToBuild > 0 and maxTime == minTime):
-        score = (0.75*(entitiesToBuild/objEntities) + 0.1*unitsBonus)
-    if(entitiesToBuild <= 0 and maxTime == minTime):
-        score = (0.75*(entitiesToBuild/objEntities) + 0.1*unitsBonus)
-    if(entitiesToBuild <= objEntities and maxTime == minTime):
-        score = 0
-    result = [time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]
-    return(result)
 
-def scoreBuildOrderIterated(techTree, buildOrder, entityId, entityQty, maxTime, minTime, fatherTime):
-    time = buildOrder[-1][0]
-    nodeQty = buildOrder[-1][7]
-    #Se calcula el path desde el nodo inicial
-    if(entityId != 31 and entityId != 15):
-        pathToNode = getPath(techTree, "Pylon", techTree.vs[entityId]["name"])
-    if(entityId == 31 or entityId == 15):
-        pathToNode = getPath(techTree, "Nexus", techTree.vs[entityId]["name"])
-    entitiesToBuild = len(pathToNode[0]) + entityQty - 1#Son las entidades que se deben construir incluyendo prerrequisitos
-    objEntities = len(pathToNode[0]) + entityQty - 1 #Entidades objetivo por construir
-    entitiesBuilt = nodeQty[entityId][1] #Son las entidades solicitadas totales que ya fueron construidas
-    for node in pathToNode[0]:
-        if(nodeQty[node][1] >= 1):
-            entitiesToBuild-=1 #Se restan los prerrequisitos si es que ya existen
-        if(nodeQty[node][1]>=1 and node != entityId):
-            entitiesBuilt+=1
-    entitiesToBuild-=nodeQty[entityId][1] #Se restan las entidades solicitadas que ya fueron construidas
-    #Se calcula el bonus por cantidad de unidades construidas en total
-    #Mientras mas cercano a 200 unidades, mas bonus obtiene
-    totalUnits = 0
-    index = 0
-    while(index < len(nodeQty)):
-        if(techTree.vs[index]["type"] == "Unit"):
-            totalUnits += nodeQty[index][1]
-        index+=1
+    score = 0.2 * (timeRate(time, maxTime, minTime)) + 0.8 * ((objEntities - entitiesBuilt)/objEntities)
     
-    #Se añaden bonus al puntaje, por cantidad de unidades y por haber cumplido el objetivo
-    unitsBonus = totalUnits/200
-    if(entitiesToBuild > 0 and maxTime != minTime):
-        score = (0.15*(timeRate(fatherTime, maxTime, minTime)) + 0.75*((entitiesBuilt)/objEntities) + 0.1*unitsBonus)
-    if(entitiesToBuild <= 0 and maxTime != minTime):
-        score = (0.15*(timeRate(fatherTime, maxTime, minTime)) + 0.75 + 0.1*unitsBonus)
-    if(entitiesToBuild > 0 and maxTime == minTime):
-        score = (0.75*(entitiesToBuild/objEntities) + 0.1*unitsBonus)
-    if(entitiesToBuild <= 0 and maxTime == minTime):
-        score = (0.75*(entitiesToBuild/objEntities) + 0.1*unitsBonus)
-    if(entitiesToBuild <= objEntities and maxTime == minTime):
-        score = 0
+    # if(entitiesToBuild > 0 and maxTime != minTime):
+    #     score = (0.20*(timeRate(time, maxTime, minTime)) + 0.80*((objEntities - entitiesBuilt)/objEntities))
+    # if(entitiesToBuild <= 0 and maxTime != minTime):
+    #     score = (0.2*(timeRate(time, maxTime, minTime)))
+    # if(entitiesToBuild > 0 and maxTime == minTime):
+    #     score = (0.75*(entitiesToBuild/objEntities))
+    # if(entitiesToBuild <= 0 and maxTime == minTime):
+    #     score = (0.75*(entitiesToBuild/objEntities))
+    # if(entitiesToBuild <= objEntities and maxTime == minTime):
+    #     score = 0
     result = [time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]
     return(result)
 
 def timeRate(time, maxTime, minTime):
-    result = (time-minTime)/(maxTime-minTime)
+    if(maxTime <= minTime):
+        result = 1
+    else:
+        result = (time-minTime)/(maxTime-minTime)
     return result
 
 def printBuildOrder(buildOrder):
