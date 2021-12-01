@@ -16,7 +16,8 @@ def showMenu(techTree):
         print("5: Obtener un orden de construcción aleatorio")
         print("6: Ejecutar algoritmo greedy")
         print("7: Ejecutar algoritmo de búsqueda local iterada")
-        print("8: Salir")
+        print("8: Ejecutar Pruebas")
+        print("9: Salir")
         print("")
         choice = input("Ingrese su elección: ")
         if(choice == "1"):
@@ -102,7 +103,7 @@ def showMenu(techTree):
                 iterations = int(input("ingrese el número de generaciones: "))
                 perturbations = int(input("Ingrese el número de perturbaciones por generación: "))
                 buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
-                solution = greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations)
+                solution = greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, iterations, 0, 0, 0)
                 score = scoreBuildOrder(techTree, solution[0], entityId, entityQty, maxTime, 0)
                 printBuildOrder(solution[0])
                 print("")
@@ -144,10 +145,10 @@ def showMenu(techTree):
                     else:
                         print("Entrada inválida. Se usarán valores por default.")
                         iterations = 20
-                        perturbations = 21
+                        perturbations = 25
                         iterationsILS = 11
                 cls()
-                solution = iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS, 1)
+                solution = iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, iterations, iterationsILS, 1, 0, 0, 0)
                 printBuildOrder(solution[0][0])
                 print("")
                 print("Se han generado archivos .xls con los resutlados.")
@@ -159,6 +160,11 @@ def showMenu(techTree):
                 
             input("Presione enter para volver al menú...")
         elif(choice == "8"):
+            print("")
+            print("-- Obtener Pruebas --")
+            obtainTestsGreedy(techTree)
+
+        elif(choice == "9"):
             print("")
             print("Cerrando programa...")
             exit = 1
