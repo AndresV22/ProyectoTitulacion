@@ -600,7 +600,16 @@ def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime)
             totalUnits += nodeQty[index][1]
         index+=1
 
-    score = 0.2 * (timeRate(time, maxTime, minTime)) + 0.8 * ((objEntities - entitiesBuilt)/objEntities)
+    score = 0.20 * (time)/(maxTime) + 0.80 * ((objEntities - entitiesBuilt)/objEntities)
+    if(score == 0):
+        print("ERROR: Score = 0")
+        print("time: ", time)
+        print("maxTime: ", maxTime)
+        print("minTime: ", minTime)
+        print("objEntities: ", objEntities)
+        print("entitiesBuilt: ", entitiesBuilt)
+        print("Score: ", score)
+        input()
     
     # if(entitiesToBuild > 0 and maxTime != minTime):
     #     score = (0.20*(timeRate(time, maxTime, minTime)) + 0.80*((objEntities - entitiesBuilt)/objEntities))
@@ -614,13 +623,6 @@ def scoreBuildOrder(techTree, buildOrder, entityId, entityQty, maxTime, minTime)
     #     score = 0
     result = [time, maxTime, entitiesBuilt, entitiesToBuild, entityQty, score]
     return(result)
-
-def timeRate(time, maxTime, minTime):
-    if(maxTime <= minTime):
-        result = 1
-    else:
-        result = (time-minTime)/(maxTime-minTime)
-    return result
 
 def printBuildOrder(buildOrder):
     print("")

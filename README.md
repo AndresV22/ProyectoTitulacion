@@ -16,7 +16,7 @@ Programa que permite encontrar órdenes de construcción en el juego Starcraft 2
 ## Requisitos
 
   * Python 3.9.5.
-  * De preferencia utilizar Sistema Operativo basado en linux.
+  * Sistema operativo Ubuntu 20.04 LTS o distro similar.
  
 ## Instalaciones necesarias (Linux)
 
@@ -68,3 +68,5 @@ Al ejecutar el algoritmo de búsqueda local iterada con la opción 7 del menú s
 1) Build_Order: Orden de construcción.
 2) Generations_Scores: Puntajes obtenidos por generación en el algoritmo greedy.
 3) Entities_Built: Entidades (Unidades/Edificios/Tecnologías) construidas.
+4) Archon_Queue: Cola de construcción de archons.
+5) Unit_Queue: Muestra las entidades que están en la cola de construcción de cada edificio.

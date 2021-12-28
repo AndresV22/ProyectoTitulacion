@@ -16,8 +16,10 @@ def showMenu(techTree):
         print("5: Obtener un orden de construcción aleatorio")
         print("6: Ejecutar algoritmo greedy")
         print("7: Ejecutar algoritmo de búsqueda local iterada")
-        print("8: Ejecutar Pruebas")
-        print("9: Salir")
+        print("8: Ejecutar pruebas ILS")
+        print("9: Ejecutar pruebas Greedy")
+        print("10: Ejecutar todas las pruebas (ILS + Greedy)")
+        print("11: Salir")
         print("")
         choice = input("Ingrese su elección: ")
         if(choice == "1"):
@@ -161,10 +163,21 @@ def showMenu(techTree):
             input("Presione enter para volver al menú...")
         elif(choice == "8"):
             print("")
-            print("-- Obtener Pruebas --")
+            print("-- Obtener pruebas algoritmo busqueda local iterada--")
+            obtainTests(techTree)
+        
+        elif(choice == "9"):
+            print("")
+            print("-- Obtener pruebas algoritmo goloso --")
+            obtainTestsGreedy(techTree)
+        
+        elif(choice == "10"):
+            print("")
+            print("-- Obtener todas las pruebas (3x11 ILS + 3x11 Greedy) --")
+            obtainTests(techTree)
             obtainTestsGreedy(techTree)
 
-        elif(choice == "9"):
+        elif(choice == "11"):
             print("")
             print("Cerrando programa...")
             exit = 1

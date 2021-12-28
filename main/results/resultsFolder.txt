@@ -1,2 +1,0 @@
-En esta carpeta se guardarán los archivos del algoritmo de búsqueda local iterada (opción 7 del menú)
-con los resultados en formato .xlsx

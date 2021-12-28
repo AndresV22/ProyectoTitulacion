@@ -31,32 +31,32 @@ def iteratedLocalSearch(techTree, entityId, entityQty, maxTime, perturbations, i
     #Se obtiene una orden de construcción aleatoria y se aplica una busqueda local
     buildOrder = getRandomBuildOrder(techTree, entityId, entityQty, maxTime)
     bestSolution = greedy(techTree, deepcopy(buildOrder), entityId, entityQty, maxTime, perturbations, iterations, 0, testNumber, experiment)
-    bestScore = scoreBuildOrder(techTree, deepcopy(bestSolution[0]), entityId, entityQty, maxTime, 0)
+    bestScore = bestSolution[1]
     genResults = [["Generación", "Puntaje", "Tiempo", "Entidades construidas"]]
     iteration = 1
     progress = 0
     cls()
     print("Calculando, por favor espere...")
     if(test == 1):
-        print("Progreso: ", progress, "%", " | Test N°: ", testNumber + 1, " | Experimento N°: ", experiment + 1)
+        print("Progreso: ", progress, "%", " | Test N°: ", testNumber + 1, " | Experimento N°: ", experiment + 1 , "| Iniciando")
     else:
         print("Progreso: ", progress, "%")
     #En cada iteración se perturba la solución inicial y se aplica otra búsqueda local
-    while(iteration <= iterationsILS):
+    while(iteration <= iterationsILS):  
         cls()
         print("Calculando, por favor espere...")
         if(test == 1):
-            print("Progreso: ", progress, "%", " | Test N°: ", testNumber + 1, " | Experimento N°: ", experiment + 1)
+            print("Progreso: ", progress, "%", " | Test N°: ", testNumber + 1, " | Experimento N°: ", experiment + 1 , "| Iteración ILS: ", iteration)
         else:
             print("Progreso: ", progress, "%")
         perturbatedSolution = perturbationFunction(deepcopy(bestSolution[0]), techTree, entityId, entityQty, maxTime)
-        localSolution = greedy(techTree, deepcopy(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations, test, testNumber, experiment)
-        score = scoreBuildOrder(techTree, localSolution[0], entityId, entityQty, bestSolution[0][-1][0], 0)
-        genResults.append([iteration, score[-1], localSolution[0][-1][0], localSolution[0][-1][7][entityId][1]])
+        localSolution = greedy(techTree, deepcopy(perturbatedSolution), entityId, entityQty, maxTime, perturbations, iterations, 0, testNumber, experiment)
+        score = localSolution[1]
         #Si el puntaje es mejor, se considera que la solución local es la solución inicial
-        if(localSolution[0][-1][0] < bestSolution[0][-1][0] and localSolution[0][-1][7][entityId][1] >= bestSolution[0][-1][7][entityId][1]):
+        if(score[-1] < bestScore[-1]):
             bestSolution = [deepcopy(localSolution[0]), score]
             bestScore = score
+        genResults.append([iteration, bestScore[-1], localSolution[0][-1][0], localSolution[0][-1][7][entityId][1]])
         progress = (iteration/iterationsILS)*100
         iteration+=1
 
@@ -131,7 +131,7 @@ def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, it
     bestSolution = deepcopy(buildOrder)
     bestScore = [1]
     iteration = 1
-    greedyResults = [["iteracion", "perturbaciones", "tiempo", "entidades"]]
+    greedyResults = [["iteracion", "perturbaciones", "tiempo", "entidades", "mejor puntaje"]]
     progress = 0
     while(iteration <= iterations):
         if(test == 1):
@@ -156,11 +156,9 @@ def greedy(techTree, buildOrder, entityId, entityQty, maxTime, perturbations, it
             if(newScore[-1] < bestScore[-1]):
                 bestScore = newScore
                 bestSolution = deepcopy(solution)
-            greedyResults.append([iteration, perturbations, solution[-1][0], solution[-1][7][entityId][1]])
+        greedyResults.append([iteration, perturbations, bestSolution[-1][0], bestSolution[-1][7][entityId][1], bestScore[-1]])
         iteration+=1
         progress = (iteration/iterations)*100
-    greedyResults.append(["Qty", "Best time", "Best score", ""])
-    greedyResults.append([bestSolution[-1][7][entityId][1] , bestSolution[-1][0], bestScore[5], ""])
     if(test == 1):
         parent_dir = "/home/andres/ProyectoTitulacion/main/results/"
         directory = "test_" + str(testNumber) + "/results_" + str(entityId) + "_" + str(entityQty) + "_" + str(maxTime) + "_TEST" + str(experiment)
@@ -180,19 +178,19 @@ def obtainTests(techTree):
     #Entity initial Zealot
     entityId = 16
     qtyObj = 5
-    timeObj = 1000
+    timeObj = 800
     results = [[], [], []]
     while(test<3):
         if(test == 1):
             #Dark Templar
             entityId = 27
             qtyObj = 5
-            timeObj = 10000
+            timeObj = 800
         if(test == 2):
             #Phoenix
             entityId = 20
             qtyObj = 5
-            timeObj = 10000
+            timeObj = 800
         experiment = 0
         while(experiment < 11):
             results[test].append(iteratedLocalSearch(techTree, entityId, qtyObj, timeObj, 21, 20, 11, 1, 1, test, experiment))
@@ -205,23 +203,23 @@ def obtainTestsGreedy(techTree):
     #Entity initial Zealot
     entityId = 16
     qtyObj = 5
-    timeObj = 1000
+    timeObj = 800
     results = [[], [], []]
     while(test<3):
         if(test == 1):
             #Dark Templar
             entityId = 27
             qtyObj = 5
-            timeObj = 10000
+            timeObj = 800
         if(test == 2):
             #Phoenix
             entityId = 20
             qtyObj = 5
-            timeObj = 10000
+            timeObj = 800
         experiment = 0
         buildOrder = getRandomBuildOrder(techTree, entityId, qtyObj, timeObj)
         while(experiment < 11):
-            results[test].append(greedy(techTree, buildOrder, entityId, qtyObj, timeObj, 25, 20, 1, test, experiment))
+            results[test].append(greedy(techTree, buildOrder, entityId, qtyObj, timeObj, 420, 11, 1, test, experiment))
             experiment+=1
         test+=1
     return results
